@@ -13,10 +13,7 @@
    [gaia.config :as config]
    [gaia.store :as store]
    [gaia.executor :as executor]
-   [gaia.swift :as swift]
-   [gaia.flow :as flow]
    [gaia.command :as command]
-   [gaia.trigger :as trigger]
    [gaia.sync :as sync])
   (:import
    [java.io InputStreamReader]))
