@@ -26,11 +26,6 @@
     (if tenant-name (.setTenantName factory tenant-name))
     (if method (.setAuthenticationMethod factory method))
     (let [account (.createAccount factory)]
-      ;;     contain (get-container account container)
-      ;; {:account account
-      ;;  :container contain
-      ;;  :container-name container
-      ;;  :root root}
       {:account account
        :root root})))
 
