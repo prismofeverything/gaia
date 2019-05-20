@@ -1,13 +1,14 @@
-(defproject gaia "0.0.7"
-  :description "regenerating computational dependency network"
-  :url "http://github.com/bmeg/gaia"
-  :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
+(defproject gaia "0.0.9"
+  :description "regenerating dependency network"
+  :url "http://github.com/prismofeverything/gaia"
+  :license {:name "MIT"
+            :url "https://opensource.org/licenses/MIT"}
   :main gaia.core
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/math.combinatorics "0.1.4"]
+  :dependencies [[org.clojure/clojure "1.10.0"]
+                 [org.clojure/math.combinatorics "0.1.5"]
                  [com.taoensso/timbre "4.8.0"]
                  [aleph "0.4.4"]
                  [clj-http "3.7.0"]
+                 [ubergraph "0.5.2"]
                  [ophion "0.0.13"]
                  [org.javaswift/joss "0.9.17"]])
