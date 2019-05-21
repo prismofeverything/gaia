@@ -1,0 +1,57 @@
+- key: parca
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  vars: {}
+  inputs: {}
+  outputs:
+    SIM_DATA: "/wcEcoli/out/parca/kb/simData_Fit_1.cPickle"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runParca.py"
+        - "parca"
+
+- key: sim
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  vars:
+    OUT: "parca"
+  inputs:
+    SIM_DATA: "/wcEcoli/out/parca/kb/simData_Fit_1.cPickle"
+  outputs:
+    SIM_OUT: "/wcEcoli/sim_out.tar.gz"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runSim.py"
+        - "{{OUT}}"
+    - command:
+        - "tar"
+        - "-czvf"
+        - "sim_out.tar.gz"
+        - "out/{{OUT}}"
+
+- key: single-analysis
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  vars:
+    OUT: "parca"
+  inputs:
+    SIM_OUT: "/wcEcoli/sim_out.tar.gz"
+  outputs:
+    PLOT_OUT: "/wcEcoli/plot_out.tar.gz"
+  commands:
+    - command:
+        - "tar"
+        - "-xzvf"
+        - "sim_out.tar.gz"
+        - "out/{{OUT}}"
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/analysisSingle.py"
+        - "{{OUT}}"
+    - command:
+        - "tar"
+        - "czvf"
+        - "plot_out.tar.gz"
+        - "out/{{OUT}}/wildtype_000000/000000/generation_000000/000000/plotOut"

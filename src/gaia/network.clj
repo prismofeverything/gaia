@@ -39,9 +39,9 @@
             (recur nodes coloring)
             (recur nodes (color-component coloring node))))))))
 
-(defn process-node
+(defn process-init
   [{:keys [key inputs outputs] :as process}]
-  (let [node [key process]
+  (let [node [key (assoc process :_process true)]
         outgoing [key (vals outputs)]
         incoming (map
                   (fn [input]
@@ -53,9 +53,15 @@
 
 (defn generate-flow
   [processes]
-  (let [init (map-cat process-node processes)]
+  (let [init (map-cat process-init processes)]
     (apply graph/digraph init)))
 
 (defn merge-processes
   [flow processes]
-  (graph/build-graph))
+  (let [init (map-cat process-init processes)]
+    (apply graph/build-graph flow init)))
+
+(defn process-nodes
+  [flow]
+  (let [nodes (graph/nodes flow)]
+    (filter #(graph/attr flow % :process) nodes)))
