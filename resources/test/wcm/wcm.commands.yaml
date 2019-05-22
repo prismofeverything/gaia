@@ -16,7 +16,7 @@
   vars:
     OUT: "parca"
   inputs:
-    SIM_DATA: "/wcEcoli/out/parca/kb/simData_Fit_1.cPickle"
+    SIM_DATA: "/wcEcoli/out/{{OUT}}/kb/simData_Fit_1.cPickle"
   outputs:
     SIM_OUT: "/wcEcoli/sim_out.tar.gz"
   commands:

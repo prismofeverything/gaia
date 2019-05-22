@@ -64,4 +64,13 @@
 (defn process-nodes
   [flow]
   (let [nodes (graph/nodes flow)]
-    (filter #(graph/attr flow % :process) nodes)))
+    (filter
+     #(graph/attr flow % :_process)
+     nodes)))
+
+(defn data-nodes
+  [flow]
+  (let [nodes (graph/nodes flow)]
+    (remove
+     #(graph/attr flow % :_process)
+     nodes)))
