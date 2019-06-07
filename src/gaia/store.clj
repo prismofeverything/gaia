@@ -74,8 +74,8 @@
   (not (present? store key)))
 
 (defn existing-paths
-  [store]
-  (let [existing (existing-keys store "")]
+  [store root]
+  (let [existing (existing-keys store root)]
     (into
      {}
      (map

@@ -1,5 +1,6 @@
 (ns gaia.sisyphus
   (:require
+   [sisyphus.kafka :as kafka]
    [sisyphus.rabbit :as rabbit]
    [gaia.executor :as executor]))
 
@@ -20,6 +21,8 @@
 
 (defn process->task
   [process command]
+  (println "PROCESS" process)
+  (println "COMMAND" command)
   {:id (or (:id process) (generate-id))
    :image (:image command)
    :commands (:commands command)
@@ -28,13 +31,19 @@
 
 (defn submit-task!
   [{:keys [rabbit]} prefix commands process]
-  (let [command (get commands (:command process))
+  (println "COMMANDS" commands)
+  (let [command (get commands (keyword (:command process)))
         task (process->task process command)]
     (rabbit/publish! rabbit (assoc task :prefix prefix))
     task))
 
 (defn cancel-task!
-  [{:keys [kafka]} id])
+  [{:keys [kafka]} id]
+  (kafka/send!
+   (:producer kafka)
+   (get-in kafka [:config :control-topic] "gaia-control")
+   {:event "terminate"
+    :id id}))
 
 (deftype SisyphusExecutor [sisyphus prefix]
   executor/Executor

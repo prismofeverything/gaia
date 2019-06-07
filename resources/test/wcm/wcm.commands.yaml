@@ -3,7 +3,7 @@
   vars: {}
   inputs: {}
   outputs:
-    SIM_DATA: "/wcEcoli/out/parca/kb/simData_Fit_1.cPickle"
+    SIM_DATA: "/wcEcoli/out/parca/kb/"
   commands:
     - command:
         - "python"
@@ -13,45 +13,28 @@
 
 - key: sim
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
-  vars:
-    OUT: "parca"
   inputs:
-    SIM_DATA: "/wcEcoli/out/{{OUT}}/kb/simData_Fit_1.cPickle"
+    SIM_DATA: "/wcEcoli/out/sim/kb/"
   outputs:
-    SIM_OUT: "/wcEcoli/sim_out.tar.gz"
+    SIM_OUT: "/wcEcoli/out/sim/wildtype_000000/"
+    METADATA: "/wcEcoli/out/sim/metadata/"
   commands:
     - command:
         - "python"
         - "-u"
         - "runscripts/manual/runSim.py"
-        - "{{OUT}}"
-    - command:
-        - "tar"
-        - "-czvf"
-        - "sim_out.tar.gz"
-        - "out/{{OUT}}"
+        - "sim"
 
-- key: single-analysis
+- key: analysis-single
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
-  vars:
-    OUT: "parca"
   inputs:
-    SIM_OUT: "/wcEcoli/sim_out.tar.gz"
+    SIM_OUT: "/wcEcoli/out/sim/wildtype_000000/"
+    METADATA: "/wcEcoli/out/sim/metadata/"
   outputs:
-    PLOT_OUT: "/wcEcoli/plot_out.tar.gz"
+    PLOT_OUT: "/wcEcoli/out/analysis/wildtype_000000/000000/generation_000000/000000/plotOut/"
   commands:
-    - command:
-        - "tar"
-        - "-xzvf"
-        - "sim_out.tar.gz"
-        - "out/{{OUT}}"
     - command:
         - "python"
         - "-u"
         - "runscripts/manual/analysisSingle.py"
-        - "{{OUT}}"
-    - command:
-        - "tar"
-        - "czvf"
-        - "plot_out.tar.gz"
-        - "out/{{OUT}}/wildtype_000000/000000/generation_000000/000000/plotOut"
+        - "analysis"

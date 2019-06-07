@@ -9,8 +9,9 @@
    [gaia.command :as command]
    [gaia.store :as store]
    [gaia.swift :as swift]
+   [gaia.cloud :as cloud]
    [gaia.funnel :as funnel]
-   [gaia.cloud :as cloud]))
+   [gaia.sisyphus :as sisyphus]))
 
 (def config-keys
   [:variables

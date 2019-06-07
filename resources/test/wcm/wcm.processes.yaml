@@ -1,0 +1,20 @@
+- key: test-parca
+  command: parca
+  outputs:
+    SIM_DATA: "sisyphus:data/wcm/gaia/test/sim-data"
+
+- key: test-sim
+  command: sim
+  inputs:
+    SIM_DATA: "sisyphus:data/wcm/gaia/test/sim-data"
+  outputs:
+    SIM_OUT: "sisyphus:data/wcm/gaia/test/sim-out"
+    METADATA: "sisyphus:data/wcm/gaia/test/metadata"
+
+- key: test-analysis
+  command: analysis-single
+  inputs:
+    SIM_OUT: "sisyphus:data/wcm/gaia/test/sim-out"
+    METADATA: "sisyphus:data/wcm/gaia/test/metadata"
+  outputs:
+    PLOT_OUT: "sisyphus:data/wcm/gaia/test/plot-out"

@@ -10,7 +10,8 @@
    [cheshire.core :as json]
    [ubergraph.core :as graph]
    [polaris.core :as polaris]
-   [protograph.kafka :as kafka]
+   [sisyphus.kafka :as kafka]
+   [sisyphus.rabbit :as rabbit]
    [gaia.config :as config]
    [gaia.store :as store]
    [gaia.executor :as executor]
@@ -49,16 +50,19 @@
         flows (atom {})
         store (config/load-store (:store config))
         rabbit (rabbit/connect! (:rabbit config))
-        kafka (kafka/connect! (:kafka config))
         grandfather (store "")
+        kafka (:kafka config)
+        producer (kafka/boot-producer kafka)
+        kafka (assoc kafka :producer producer)
         exec-config (assoc
                      (:executor config)
-                     :kafka (:kafka config)
+                     :kafka kafka
                      :rabbit rabbit)
         prefix (str (store/protocol grandfather) (:path exec-config))
         executor (config/load-executor exec-config prefix)]
     {:config config
      :rabbit rabbit
+     :kafka kafka
      :commands commands
      :flows flows
      :store store

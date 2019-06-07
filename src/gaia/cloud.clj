@@ -4,7 +4,8 @@
    [sisyphus.cloud :as cloud]
    [gaia.store :as store])
   (:import
-   [cloud.google.cloud.storage
+   [com.google.cloud.storage
+    BlobId
     Storage$BlobListOption]))
 
 (defn exists?
@@ -17,17 +18,21 @@
   [directory]
   (into-array
    Storage$BlobListOption
-   [(Storage$BlobListOption/currentDirectory)
-    (Storage$BlobListOption/prefix directory)]))
+   [(Storage$BlobListOption/prefix directory)]))
+;; (Storage$BlobListOption/currentDirectory)
 
 (defn list-directory
   [storage bucket directory]
   (let [options (directory-options directory)
         blobs (.list storage bucket options)]
-    (iterator-seq blobs)))
+    (map
+     (fn [x]
+       (str bucket ":" (.getName x)))
+     (.getValues blobs))))
 
 (defn split-path
-  (let [[bucket parts] (string/split key ":")
+  [key]
+  (let [[bucket & parts] (string/split (name key) #":")
         path (string/join ":" parts)]
     [bucket path]))
 
@@ -36,18 +41,18 @@
   (present?
     [store key]
     (let [[bucket path] (split-path key)]
-      (exists? storage bucket (join-path container path))))
+      (exists? storage bucket (store/join-path [container path]))))
   (protocol [store] "")
   (url-root [store] "")
   (key->url
     [store key]
     (let [[bucket path] (split-path key)
-          path (join-path container path)]
+          path (store/join-path [container path])]
       (str bucket ":" path)))
   (existing-keys
     [store root]
     (let [[bucket path] (split-path root)]
-      (list-directory storage bucket (join-path container path)))))
+      (list-directory storage bucket path))))
 
 (defn load-cloud-store
   [config container]

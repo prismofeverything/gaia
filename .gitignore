@@ -19,3 +19,4 @@ genes.json
 /__pycache__
 *.pyc
 /resources/test/data/funnel-work-dir
+.python-version

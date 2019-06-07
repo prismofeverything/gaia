@@ -4,8 +4,8 @@
    [clojure.string :as string]
    [taoensso.timbre :as log]
    [cheshire.core :as json]
-   [protograph.kafka :as kafka]
    [protograph.template :as template]
+   [sisyphus.kafka :as kafka]
    [gaia.flow :as flow]
    [gaia.command :as command]
    [gaia.store :as store]
@@ -17,7 +17,7 @@
     {:root root
      :flow (atom flow)
      :store store
-     :events (kafka/producer (merge (:base kafka) (:producer kafka)))
+     :events (:producer kafka)
      :status
      (atom
       {:state :initialized
@@ -26,6 +26,8 @@
 
 (defn send-tasks!
   [executor store commands prior tasks]
+  (println "PRIOR" prior)
+  (println "TASKS" tasks)
   (let [relevant (remove (comp (partial get prior) first) tasks)
         submit! (partial executor/submit! executor store commands)
         triggered (into
@@ -76,8 +78,9 @@
         (if (empty? missing)
           (assoc status :state :complete)
           (assoc status :state :incomplete)))
-      (let [active (flow/process-map flow front)
+      (let [active (flow/node-map flow front)
             computing (apply merge (map compute-outputs (vals active)))]
+        (println "ACTIVE" active)
         (send tasks (partial send-tasks! executor store commands) active)
         (-> status
             (update :data merge computing)
@@ -124,39 +127,39 @@
         (log/info "FLOW CONTINUES" root)))))
 
 (defn executor-events!
-  [{:keys [status events] :as state} executor commands root raw]
-  (let [event (json/parse-string (.value raw) true)]
-    (log/info "GAIA EVENT" event)
-    (condp = (:event event)
+  [{:keys [status events] :as state}
+   executor commands root topic event]
+  (log/info "GAIA EVENT" event)
+  (condp = (:event event)
 
-      "process-state"
-      (process-state! state event)
+    "process-state"
+    (process-state! state event)
 
-      "data-complete"
-      (when (= (:root event) (name root))
-        (data-complete! state executor commands root event))
+    "data-complete"
+    (when (= (:root event) (name root))
+      (data-complete! state executor commands root event))
 
-      (log/info "other executor event" event))))
+    (log/info "other executor event" event)))
 
 (defn find-existing
-  [store status]
-  (let [existing (store/existing-paths store)]
-    ;; (update status :data merge existing)
+  [store root status]
+  (let [existing (store/existing-paths store root)]
+    (println "EXISTING" existing)
     (assoc status :data existing)))
 
 (defn events-listener!
   [state executor commands root kafka]
-  (let [consumer (kafka/consumer (merge (:base kafka) (:consumer kafka)))
-        listen (partial executor-events! state executor commands root)]
-    (kafka/subscribe consumer ["gaia-events"])
-    {:gaia-events (future (kafka/consume consumer listen))
-     :consumer consumer}))
+  (let [status-topic (get kafka :status-topic "gaia-status")
+        topics ["gaia-events" status-topic]
+        kafka (update kafka :subscribe concat topics)
+        handle (partial executor-events! state executor commands root)]
+    (kafka/boot-consumer kafka handle)))
 
 (defn initialize-flow!
   [root store executor kafka commands]
   (let [flow (generate-sync kafka root [] store)
         listener (events-listener! flow executor commands root kafka)]
-    (swap! (:status flow) (partial find-existing store))
+    (swap! (:status flow) (partial find-existing store root))
     flow))
 
 (defn trigger-flow!

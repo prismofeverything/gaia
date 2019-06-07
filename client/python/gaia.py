@@ -25,10 +25,11 @@ def process(key, command, inputs, outputs, var={}):
 
 class Gaia:
     def __init__(self, host):
+        self.protocol = "http://"
         self.host = host
 
     def post(self, endpoint, data):
-        url = self.host + '/' + endpoint
+        url = self.protocol + self.host + '/' + endpoint
         data=json.dumps(data)
         return requests.post(url, data=data).json()
 

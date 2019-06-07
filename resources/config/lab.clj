@@ -1,7 +1,7 @@
 {:kafka
- {:base
-  {:host "localhost"
-   :port "9092"}}
+ {:host "localhost"
+  :port "9092"
+  :status-topic "sisyphus-status"}
 
  :mongo
  {:host "127.0.0.1"

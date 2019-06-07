@@ -40,15 +40,18 @@
      #(graph/attr flow % :_process)
      nodes)))
 
+(defn node-map
+  [flow nodes]
+  (into
+   {}
+   (map
+    (fn [node]
+      [node (graph/attrs flow node)])
+    nodes)))
+
 (defn process-map
   [flow]
-  (let [nodes (process-nodes)]
-    (into
-     {}
-     (map
-      (fn [node]
-        [node (graph/attrs flow node)])
-      nodes))))
+  (node-map flow (process-nodes flow)))
 
 (defn data-nodes
   [flow]
