@@ -1,5 +1,6 @@
 (ns gaia.sync
   (:require
+   [clojure.set :as set]
    [clojure.string :as string]
    [taoensso.timbre :as log]
    [cheshire.core :as json]
@@ -48,19 +49,36 @@
       [k {:state :computing}])
     (vals (:outputs process)))))
 
-(defn elect-candidates!
+(defn complete-keys
+  [data]
+  (set
+   (map
+    first
+    (filter
+     (fn [[k v]]
+       (= :complete (keyword (:state v))))
+     data))))
+
+(defn missing-data
+  [flow data]
+  (let [complete (complete-keys data)
+        space (set (flow/data-nodes flow))]
+    (set/difference space complete)))
+
+(defn activate-front!
   [{:keys [store tasks] :as state} flow executor commands status]
-  (let [candidates (mapv identity (flow/find-candidates flow (:data status)))]
-    (log/info "candidates" candidates)
-    (if (empty? candidates)
-      (let [missing (flow/missing-data flow (:data status))]
-        (log/info "empty candidates - missing" missing)
+  (let [complete (complete-keys (:data status))
+        front (mapv identity (flow/immanent-front flow complete))]
+    (log/info "front" front)
+    (if (empty? front)
+      (let [missing (missing-data flow (:data status))]
+        (log/info "empty front - missing" missing)
         (if (empty? missing)
           (assoc status :state :complete)
           (assoc status :state :incomplete)))
-      (let [elect (flow/process-map flow candidates)
-            computing (apply merge (map compute-outputs (vals elect)))]
-        (send tasks (partial send-tasks! executor store commands) elect)
+      (let [active (flow/process-map flow front)
+            computing (apply merge (map compute-outputs (vals active)))]
+        (send tasks (partial send-tasks! executor store commands) active)
         (-> status
             (update :data merge computing)
             (assoc :state :running))))))
@@ -87,7 +105,7 @@
       (swap!
        status
        (comp
-        (partial elect-candidates! state @flow executor @commands)
+        (partial activate-front! state @flow executor @commands)
         (partial complete-key event)))
       (condp = (:state @status)
 
@@ -147,7 +165,7 @@
   (swap!
    status
    (comp
-    (partial elect-candidates! state @flow executor @commands)
+    (partial activate-front! state @flow executor @commands)
     (partial find-existing store))))
 
 (defn dissoc-seq
@@ -166,7 +184,7 @@
     (swap!
      status
      (comp
-      (partial elect-candidates! state now executor @commands)
+      (partial activate-front! state now executor @commands)
       (partial expunge-keys data)))
     (log/info "expired" down)
     down))
@@ -193,7 +211,7 @@
 
 (defn halt-flow!
   [{:keys [root flow tasks status events] :as state} executor]
-  (let [halting (flow/process-keys @flow)]
+  (let [halting (flow/process-nodes @flow)]
     (swap! status assoc :state :halted)
     (cancel-tasks! tasks executor halting)
     (executor/declare-event!
@@ -205,7 +223,7 @@
   [{:keys [flow status tasks] :as state} executor commands processes]
   (let [transform (command/transform-processes @commands processes)]
     (cancel-tasks! tasks executor (keys transform))
-    (swap! flow #(flow/add-nodes % (vals transform)))
+    (swap! flow #(flow/merge-processes % (vals transform)))
     (expire-keys! state executor commands (keys transform))))
 
 (defn expire-commands!

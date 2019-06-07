@@ -36,6 +36,11 @@
         config (update config :processes (partial command/transform-processes (:commands config)))]
     config))
 
+(defn load-processes
+  [path]
+  (let [processes (parse-yaml path)]
+    (command/fill-templates processes)))
+
 (defn load-commands
   [path]
   (command/index-key

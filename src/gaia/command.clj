@@ -142,9 +142,13 @@
    (comp keyword :key)
    s))
 
+(defn fill-templates
+  [processes]
+  (template/map-cat template-vars processes))
+
 (defn transform-processes
   [commands processes]
-  (let [templates (template/map-cat template-vars processes)]
+  (let [templates (fill-templates processes)]
     (index-key
      (template/map-cat
       (fn [process]

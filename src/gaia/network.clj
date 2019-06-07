@@ -42,14 +42,17 @@
 (defn process-init
   [{:keys [key inputs outputs] :as process}]
   (let [node [key (assoc process :_process true)]
-        outgoing [key (vals outputs)]
         incoming (map
                   (fn [input]
                     [input key])
-                  (vals inputs))]
+                  (vals inputs))
+        outgoing (map
+                  (fn [output]
+                    [key output])
+                  (vals outputs))]
     (cons
      node
-     (cons outgoing incoming))))
+     (concat incoming outgoing))))
 
 (defn generate-flow
   [processes]
@@ -74,3 +77,13 @@
     (remove
      #(graph/attr flow % :_process)
      nodes)))
+
+(defn immanent-front
+  [flow data]
+  (let [processes (process-nodes flow)]
+    (filter
+     (fn [process]
+       (and
+        (every? data (graph/predecessors flow process))
+        (not-every? data (graph/successors flow process))))
+     processes)))
