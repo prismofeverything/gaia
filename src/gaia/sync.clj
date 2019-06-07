@@ -68,7 +68,7 @@
 (defn activate-front!
   [{:keys [store tasks] :as state} flow executor commands status]
   (let [complete (complete-keys (:data status))
-        front (mapv identity (flow/immanent-front flow complete))]
+        front (mapv identity (flow/imminent-front flow complete))]
     (log/info "front" front)
     (if (empty? front)
       (let [missing (missing-data flow (:data status))]

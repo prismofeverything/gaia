@@ -89,7 +89,7 @@
      #(graph/attr flow % :_process)
      nodes)))
 
-(defn immanent-front
+(defn imminent-front
   [flow data]
   (let [processes (process-nodes flow)]
     (filter
