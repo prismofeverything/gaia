@@ -28,8 +28,8 @@
 - key: analysis-single
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
   inputs:
-    SIM_OUT: "/wcEcoli/out/sim/wildtype_000000/"
-    METADATA: "/wcEcoli/out/sim/metadata/"
+    SIM_OUT: "/wcEcoli/out/analysis/wildtype_000000/"
+    METADATA: "/wcEcoli/out/analysis/metadata/"
   outputs:
     PLOT_OUT: "/wcEcoli/out/analysis/wildtype_000000/000000/generation_000000/000000/plotOut/"
   commands:

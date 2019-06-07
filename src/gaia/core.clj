@@ -122,11 +122,13 @@
 (defn flow-status!
   [state root]
   (let [flow (find-flow! state root)
-        {:keys [state data]} @(:status flow)]
-    {:state state
-     :flow @(:flow flow)
-     :tasks @(:tasks flow)
-     :data data}))
+        {:keys [state data]} @(:status flow)
+        status {:state state
+                :flow @(:flow flow)
+                :tasks @(:tasks flow)
+                :data data}]
+    (println "STATUS" status)
+    status))
 
 (defn command-handler
   [state]
