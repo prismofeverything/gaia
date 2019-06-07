@@ -11,4 +11,5 @@
                  [clj-http "3.7.0"]
                  [ubergraph "0.5.2"]
                  [ophion "0.0.13"]
+                 [sisyphus "0.0.1"]
                  [org.javaswift/joss "0.9.17"]])

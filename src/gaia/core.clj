@@ -48,11 +48,17 @@
   (let [commands (atom (:commands config))
         flows (atom {})
         store (config/load-store (:store config))
+        rabbit (rabbit/connect! (:rabbit config))
+        kafka (kafka/connect! (:kafka config))
         grandfather (store "")
-        exec-config (assoc (:executor config) :kafka (:kafka config))
+        exec-config (assoc
+                     (:executor config)
+                     :kafka (:kafka config)
+                     :rabbit rabbit)
         prefix (str (store/protocol grandfather) (:path exec-config))
         executor (config/load-executor exec-config prefix)]
     {:config config
+     :rabbit rabbit
      :commands commands
      :flows flows
      :store store

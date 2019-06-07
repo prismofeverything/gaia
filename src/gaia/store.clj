@@ -33,14 +33,11 @@
 
 (defprotocol Store
   (present? [store key])
-  (computing? [store key])
   (protocol [store])
   (url-root [store])
   (key->url [store key])
-  ;; (put-key [store key])
-  ;; (get-key [store key])
-  (delete [store key])
-  (existing-keys [store]))
+  ;; (delete [store key])
+  (existing-keys [store path]))
 
 (defprotocol Bus
   (put [bus topic message])
@@ -57,18 +54,17 @@
     (let [path (str root (join-path [container (name key)]))
           file (io/file path)]
       (.exists file)))
-  (computing? [store key] false)
   (protocol [store] "file://")
   (url-root [store] (str root container "/"))
   (key->url [store key]
     (str
      (protocol store)
      (str root (join-path [container (name key)]))))
-  (delete [store key]
-    (io/delete-file
-     (str root (join-path [container (name key)]))))
+  ;; (delete [store key]
+  ;;   (io/delete-file
+  ;;    (str root (join-path [container (name key)]))))
   (existing-keys
-    [store]
+    [store path]
     (let [base (url-root store)
           files (kafka/dir->files base)]
       (mapv (partial file->key base) files))))
@@ -79,7 +75,7 @@
 
 (defn existing-paths
   [store]
-  (let [existing (existing-keys store)]
+  (let [existing (existing-keys store "")]
     (into
      {}
      (map
