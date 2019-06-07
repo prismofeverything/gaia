@@ -69,6 +69,7 @@
 
 (defn activate-front!
   [{:keys [store tasks] :as state} flow executor commands status]
+  (println "DATA" (:data status))
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
     (log/info "front" front)
@@ -79,16 +80,28 @@
           (assoc status :state :complete)
           (assoc status :state :incomplete)))
       (let [active (flow/node-map flow front)
-            computing (apply merge (map compute-outputs (vals active)))]
+            current @tasks
+            chosen (remove
+                    (fn [act] (get current act))
+                    (keys active))
+            launching (select-keys active chosen)
+            computing (apply merge (map compute-outputs (vals launching)))]
         (println "ACTIVE" active)
-        (send tasks (partial send-tasks! executor store commands) active)
+        (println "LAUNCHING" launching)
+        (println "COMPUTING" computing)
+        (send tasks (partial send-tasks! executor store commands) launching)
         (-> status
             (update :data merge computing)
             (assoc :state :running))))))
 
 (defn complete-key
   [event status]
-  (assoc-in status [:data (:key event)] (:output event)))
+  (assoc-in
+   status [:data (:key event)]
+   (merge
+    (select-keys event [:root :path :key])
+    {:url (:key event)
+     :state :complete})))
 
 (defn process-state!
   [{:keys [tasks]} event]
