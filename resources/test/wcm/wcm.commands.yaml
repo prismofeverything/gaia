@@ -1,9 +1,11 @@
+# these are the commands for the simplified runscripts
+
 - key: parca
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
   vars: {}
   inputs: {}
   outputs:
-    SIM_DATA: "/wcEcoli/out/parca/kb/"
+    sim-data: "/wcEcoli/out/parca/kb/"
   commands:
     - command:
         - "python"
@@ -14,10 +16,10 @@
 - key: sim
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
   inputs:
-    SIM_DATA: "/wcEcoli/out/sim/kb/"
+    sim-data: "/wcEcoli/out/sim/kb/"
   outputs:
-    SIM_OUT: "/wcEcoli/out/sim/wildtype_000000/"
-    METADATA: "/wcEcoli/out/sim/metadata/"
+    sim-out: "/wcEcoli/out/sim/wildtype_000000/"
+    metadata: "/wcEcoli/out/sim/metadata/"
   commands:
     - command:
         - "python"
@@ -25,16 +27,234 @@
         - "runscripts/manual/runSim.py"
         - "sim"
 
-- key: analysis-single
+- key: analysis
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
   inputs:
-    SIM_OUT: "/wcEcoli/out/analysis/wildtype_000000/"
-    METADATA: "/wcEcoli/out/analysis/metadata/"
+    sim-out: "/wcEcoli/out/analysis/wildtype_000000/"
+    metadata: "/wcEcoli/out/analysis/metadata/"
   outputs:
-    PLOT_OUT: "/wcEcoli/out/analysis/wildtype_000000/000000/generation_000000/000000/plotOut/"
+    plot-out: "/wcEcoli/out/analysis/wildtype_000000/000000/generation_000000/000000/plotOut/"
   commands:
     - command:
         - "python"
         - "-u"
         - "runscripts/manual/analysisSingle.py"
         - "analysis"
+
+# these are the commands for the full wcm workflow 
+
+- key: init-raw-data
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  inputs: {}
+  outputs:
+    raw-data: "/wcEcoli/raw_data.cPickle"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runTask.py"
+        - "--task"
+        - "init_raw_data"
+        - "--output"
+        - "/wcEcoli/raw_data.cPickle"
+
+- key: init-raw-validation-data
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  inputs: {}
+  outputs:
+    raw-validation-data: "/wcEcoli/raw_validation_data.cPickle"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runTask.py"
+        - "--task"
+        - "init_raw_validation_data"
+        - "--output"
+        - "/wcEcoli/raw_validation_data.cPickle"
+
+- key: init-validation-data
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  inputs:
+    raw-data: "/wcEcoli/raw_data.cPickle"
+    raw-validation-data: "/wcEcoli/raw_validation_data.cPickle"
+  outputs:
+    validation-data: "/wcEcoli/validation_data.cPickle"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runTask.py"
+        - "--task"
+        - "init_validation_data"
+        - "--knowledge_base_raw"
+        - "/wcEcoli/raw_data.cPickle"
+        - "--validation_data_input"
+        - "/wcEcoli/raw_validation_data.cPickle"
+        - "--output_data"
+        - "/wcEcoli/validation_data.cPickle"
+
+- key: fit-sim-data
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  vars:
+    cpus: 1
+    disable-ribosome-fitting: "False"
+    disable-rnapoly-fitting: "False"
+  inputs:
+    raw-data: "/wcEcoli/raw_data.cPickle"
+  outputs:
+    sim-data: "/wcEcoli/sim_data.cPickle"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runTask.py"
+        - "--task"
+        - "fit_sim_data"
+        - "--input_data"
+        - "/wcEcoli/raw_data.cPickle"
+        - "--cpus"
+        - "{{cpus}}"
+        - "--disable_ribosome_capacity_fitting"
+        - "{{disable-ribosome-fitting}}"
+        - "--disable_rnapoly_capacity_fitting"
+        - "{{disable-rnapoly-fitting}}"
+        - "--output_data"
+        - "/wcEcoli/sim_data.cPickle"
+  
+- key: variant-sim-data
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  vars:
+    variant-function: "wildtype"
+    variant-index: 0
+  inputs:
+    input-sim-data: "/wcEcoli/input_sim_data.cPickle"
+  outputs:
+    output-sim-data: "/wcEcoli/output_sim_data.cPickle"
+    variant-metadata: "/wcEcoli/variant_metadata/"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runTask.py"
+        - "--task"
+        - "variant_sim_data"
+        - "--input_sim_data"
+        - "/wcEcoli/input_sim_data.cPickle"
+        - "--variant_function"
+        - "{{variant-function}}"
+        - "--variant_index"
+        - "{{variant-index}}"
+        - "--variant_metadata"
+        - "{{variant-metadata}}"
+        - "--output_sim_data"
+        - "/wcEcoli/output_sim_data.cPickle"
+
+- key: simulation
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  vars:
+    sim-index: "000000"
+    variant-index: "000000"
+    generation: "000000"
+    seed: 0
+    timeline: "\"0 minimal\""
+    length: 10800
+    mass-distribution: "True"
+    translation-supply: "True"
+    trna-charging: "False"
+  inputs:
+    sim-data: "/wcEcoli/sim_data.cPickle"
+  outputs:
+    sim-out: "/wcEcoli/sim_out/"
+    daughter-a: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/000000/simOut/Daughter1_inherited_state.cPickle"
+    daughter-b: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/000000/simOut/Daughter2_inherited_state.cPickle"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runTask.py"
+        - "--task"
+        - "simulation"
+        - "--seed"
+        - "{{seed}}"
+        - "--timeline"
+        - "{{timeline}}"
+        - "--length_sec"
+        - "{{length}}"
+        - "--mass_distribution"
+        - "{{mass-distribution}}"
+        - "--input_sim_data"
+        - "{{sim-data}}"
+        - "--output_directory"
+        - "{{sim-out}}"
+
+- key: simulation-daughter
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  vars:
+    sim-index: "000000"
+    variant-index: "000000"
+    generation: "000000"
+    branch: "000000"
+    seed: 0
+    timeline: "\"0 minimal\""
+    length: 10800
+    mass-distribution: "True"
+    translation-supply: "True"
+    trna-charging: "False"
+  inputs:
+    inherited-state: "/wcEcoli/inherited-state.cPickle"
+    sim-data: "/wcEcoli/sim_data.cPickle"
+  outputs:
+    sim-out: "/wcEcoli/sim_out/"
+    daughter-a: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/{{branch}}/simOut/Daughter1_inherited_state.cPickle"
+    daughter-b: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/{{branch}}/simOut/Daughter2_inherited_state.cPickle"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runTask.py"
+        - "--task"
+        - "simulation_daughter"
+        - "--seed"
+        - "{{seed}}"
+        - "--timeline"
+        - "{{timeline}}"
+        - "--length_sec"
+        - "{{length}}"
+        - "--mass_distribution"
+        - "{{mass-distribution}}"
+        - "--input_sim_data"
+        - "{{sim-data}}"
+        - "--inherited_state_path"
+        - "{{inherited-state}}"
+        - "--output_directory"
+        - "{{sim-out}}"
+
+- key: analysis-type
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  vars:
+    analysis-type: "single"
+  inputs:
+    sim-data: "/wcEcoli/sim_data.cPickle"
+    validation-data: "/wcEcoli/validation_data.cPickle"
+    metadata: "/wcEcoli/metadata/"
+    sim-out: "/wcEcoli/sim_out/"
+  outputs:
+    output-plots: "/wcEcoli/plot_out/"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runTask.py"
+        - "--task"
+        - "analysis_{{analysis-type}}"
+        - "--input_results_directory"
+        - "{{sim-out}}"
+        - "--input_sim_data"
+        - "{{sim-data}}"
+        - "--input_validation_data"
+        - "{{validation-data}}"
+        - "--output_plots_directory"
+        - "{{output-plots}}"
+        - "--metadata"
+        - "{{metadata}}"

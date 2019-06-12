@@ -12,7 +12,7 @@
    [gaia.executor :as executor]))
 
 (defn generate-sync
-  [{:keys [kafka] :as config} root processes store]
+  [kafka root processes store]
   (let [flow (flow/generate-flow (vals processes))]
     {:root root
      :flow (atom flow)
@@ -140,7 +140,7 @@
         (log/info "FLOW CONTINUES" root)))))
 
 (defn executor-events!
-  [{:keys [status events] :as state}
+  [{:keys [status] :as state}
    executor commands root topic event]
   (log/info "GAIA EVENT" event)
   (condp = (:event event)

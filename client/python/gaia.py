@@ -13,8 +13,7 @@ def process(key, command, inputs, outputs, var={}):
     out = {
         key: key,
         command: command,
-        outputs: outputs
-    }
+        outputs: outputs}
 
     if len(inputs) > 0:
         out['inputs'] = inputs
@@ -23,7 +22,7 @@ def process(key, command, inputs, outputs, var={}):
 
     return out
 
-class Gaia:
+class Gaia(object):
     def __init__(self, host):
         self.protocol = "http://"
         self.host = host
@@ -35,32 +34,32 @@ class Gaia:
 
     def command(self, commands=[]):
         return self.post('command', {
-            'commands': commands
-        })
+            'commands': commands})
 
     def merge(self, root, processes):
         return self.post('merge', {
             'root': root,
-            'processes': processes
-        })
+            'processes': processes})
 
     def trigger(self, root):
         return self.post('trigger', {
-            'root': root
-        })
+            'root': root})
 
     def halt(self, root):
         return self.post('halt', {
-            'root': root
-        })
+            'root': root})
 
     def status(self, root):
         return self.post('status', {
-            'root': root
-        })
+            'root': root})
 
     def expire(self, root, keys):
         return self.post('expire', {
             'root': root,
-            'expire': keys
-        })
+            'expire': keys})
+
+class Flow(object):
+	pass
+
+if __name__ == '__main__':
+	print(sys.argv)
