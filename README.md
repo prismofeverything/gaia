@@ -4,7 +4,24 @@
 
 manage computation of a network of dependent processes
 
-![GAIA](https://github.com/bmeg/gaia/blob/master/resources/gaia.jpg)
+![GAIA](https://github.com/prismofeverything/gaia/blob/master/resources/gaia.jpg)
+
+## quickstart
+
+To run a Gaia server, you need a few things:
+
+* [Kafka](https://kafka.apache.org/quickstart)
+* [RabbitMQ](https://www.rabbitmq.com/download.html)
+* [gcloud](https://cloud.google.com/sdk/docs/quickstarts)
+* [leiningen](https://leiningen.org/)
+
+In addition, you will need to set up `gcloud` to authorize with google. This means running `gcloud auth login` at some point with an account that is tied to google cloud, and you have to follow the directions [here](https://cloud.google.com/storage/docs/reference/libraries) for "setting up authentication" to access the cloud resources programmatically.
+
+Once all this is in place you can run
+
+    lein run
+
+at the command line to start Gaia. 
 
 ## idea
 
@@ -120,9 +137,9 @@ flow.expire('biostream', ['ls-home', 'genomes', ...])
 
 Gaia requires three main components for its operation:
 
-* Executor - This is the service that will be managing the actual execution of all the tasks Gaia triggers. Currently [Funnel](https://github.com/ohsu-comp-bio/funnel) is supported.
+* Executor - This is the service that will be managing the actual execution of all the tasks Gaia triggers. Currently [Sisyphus](https://github.com/CovertLab/sisyphus) is the target.
 * Bus - In order to determine when a task has finished running, Gaia subscribes to an event bus containing messages from the Executor. So far this is [Kafka](https://kafka.apache.org/), but additional busses could easily be supported.
-* Store - The data store is where the inputs and results from each of the running tasks is stored. Currently Gaia supports filesystem and [Openstack Swift](https://wiki.openstack.org/wiki/Swift) data stores.
+* Store - The data store is where the inputs and results from each of the running tasks is stored. Currently Gaia supports filesystem, google cloud storage and [Openstack Swift](https://wiki.openstack.org/wiki/Swift) data stores.
 
 ### config
 
@@ -131,11 +148,11 @@ Here is an example of Gaia configuration (living under `resources/config/gaia.cl
 ```clj
 {:kafka
  {:base
-  {:host "localhost"        ;; whereever your kafka cluster lives
+  {:host "localhost"        ;; wherever your kafka cluster lives
    :port "9092"}}
 
  :executor
- {:target "funnel"
+ {:target "sisyphus"
   :host "http://localhost:19191"
   :path ""}
 
@@ -150,8 +167,8 @@ Here is an example of Gaia configuration (living under `resources/config/gaia.cl
   :tenant-id "8897b62d8a8d45f38dfd2530375fbdac"
   :region "RegionOne"}
 
- :flow                      ;; path to set of commands, processes, variables and agents files
- {:path "../biostream/bmeg-etl/bmeg"}}
+ :flow                      ;; path to set of commands and processes files
+ {:path "resources/test/triangle/triangle"}}
 ```
 
 Once this is all established, you can start Gaia by typing
@@ -161,6 +178,8 @@ Once this is all established, you can start Gaia by typing
 in the root level of the project (or a path to whatever config file you want to use).
 
 ### commands.yaml
+
+You don't need to supply commands and processes through a yaml file (you can post them to the HTTP endpoint), but you can if you want.
 
 The format of this file is a set of keys with a description of how to run the command. This description maps onto the Task Execution Schema with some additional information about how to translate inputs and outputs into keys in the data store. Here is an example:
 
@@ -224,11 +243,3 @@ Notice the second argument to curl is embedded in curly braces. This signifies t
 ```
 
 Here under the `vars` key we specify the `URL` which will be substituted into the command.
-
-### generating all implied funnel documents
-
-If you don't need to trigger all the funnel tasks but you would like to see what funnel tasks would be run (a dry run, so to speak), you can emit all funnel documents currently implied by the current `processes.yaml` file:
-
-    lein run -m gaia.funnel --config path/to/config.clj --output funnel-tasks.json
-
-The funnel tasks will be emitted in json format, one task message per line.
