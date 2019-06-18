@@ -25,7 +25,7 @@ at the command line to start Gaia.
 
 ## idea
 
-Gaia tracks a set of keys representing files to be computed, and the network of dependent processes that compute them. Its main focus is a data store that holds these keys, which can begin life seeded with prior information. At each cycle, Gaia calculates which keys are missing and which processes are able to be run given the set of keys available, and matches these up to select a process to run whose inputs are all available and one or more outputs are missing. Once these missing keys are computed, the cycle is run again and again until either all keys are computed or no more processes can be run.
+Gaia tracks a set of keys representing files to be computed, and the network of dependent processes that compute them. Its main focus is a data store that holds these keys, which can begin life seeded with prior information. At each cycle, Gaia compares the keys that are present to the inputs of processes who compute keys that are missing, triggering any processes found. Once these missing keys are computed, the cycle is run again and again until either all keys are computed or no more processes can be run.
 
 Gaia has both a server to launch these computations and a client to interact with the server, trigger new processes or commands, or gather information about the status of each process or data key (initialized/running/error/complete).
 
@@ -35,7 +35,7 @@ The python client for Gaia lives at `client/python/gaia.py`. To connect to a run
 
 ```
 import gaia
-host = "http://exa.compbio.ohsu.edu/gaia"
+host = "localhost:21112"
 flow = gaia.Gaia(host)
 ```
 
