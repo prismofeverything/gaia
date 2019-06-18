@@ -154,6 +154,7 @@
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
   vars:
     sim-index: "000000"
+    variant-function: "wildtype"
     variant-index: "000000"
     generation: "000000"
     seed: 0
@@ -166,8 +167,8 @@
     sim-data: "/wcEcoli/sim_data.cPickle"
   outputs:
     sim-out: "/wcEcoli/sim_out/"
-    daughter-a: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/000000/simOut/Daughter1_inherited_state.cPickle"
-    daughter-b: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/000000/simOut/Daughter2_inherited_state.cPickle"
+    daughter-a: "/wcEcoli/sim_out/manual/{{variant-function}}_{{variant-index}}/{{sim-index}}/generation_{{generation}}/000000/simOut/Daughter1_inherited_state.cPickle"
+    daughter-b: "/wcEcoli/sim_out/manual/{{variant-function}}_{{variant-index}}/{{sim-index}}/generation_{{generation}}/000000/simOut/Daughter2_inherited_state.cPickle"
   commands:
     - command:
         - "python"
@@ -192,6 +193,7 @@
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
   vars:
     sim-index: "000000"
+    variant-function: "wildtype"
     variant-index: "000000"
     generation: "000000"
     branch: "000000"
@@ -206,8 +208,8 @@
     sim-data: "/wcEcoli/sim_data.cPickle"
   outputs:
     sim-out: "/wcEcoli/sim_out/"
-    daughter-a: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/{{branch}}/simOut/Daughter1_inherited_state.cPickle"
-    daughter-b: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/{{branch}}/simOut/Daughter2_inherited_state.cPickle"
+    daughter-a: "/wcEcoli/sim_out/manual/{{variant-function}}_{{variant-index}}/{{sim-index}}/generation_{{generation}}/{{branch}}/simOut/Daughter1_inherited_state.cPickle"
+    daughter-b: "/wcEcoli/sim_out/manual/{{variant-function}}_{{variant-index}}/{{sim-index}}/generation_{{generation}}/{{branch}}/simOut/Daughter2_inherited_state.cPickle"
   commands:
     - command:
         - "python"
