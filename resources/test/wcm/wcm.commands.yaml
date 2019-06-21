@@ -154,6 +154,7 @@
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
   vars:
     sim-index: "000000"
+    variant-function: "wildtype"
     variant-index: "000000"
     generation: "000000"
     seed: 0
@@ -166,8 +167,8 @@
     sim-data: "/wcEcoli/sim_data.cPickle"
   outputs:
     sim-out: "/wcEcoli/sim_out/"
-    daughter-a: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/000000/simOut/Daughter1_inherited_state.cPickle"
-    daughter-b: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/000000/simOut/Daughter2_inherited_state.cPickle"
+    daughter-a: "/wcEcoli/sim_out/manual/{{variant-function}}_{{variant-index}}/{{sim-index}}/generation_{{generation}}/000000/simOut/Daughter1_inherited_state.cPickle"
+    daughter-b: "/wcEcoli/sim_out/manual/{{variant-function}}_{{variant-index}}/{{sim-index}}/generation_{{generation}}/000000/simOut/Daughter2_inherited_state.cPickle"
   commands:
     - command:
         - "python"
@@ -192,6 +193,7 @@
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
   vars:
     sim-index: "000000"
+    variant-function: "wildtype"
     variant-index: "000000"
     generation: "000000"
     branch: "000000"
@@ -206,8 +208,8 @@
     sim-data: "/wcEcoli/sim_data.cPickle"
   outputs:
     sim-out: "/wcEcoli/sim_out/"
-    daughter-a: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/{{branch}}/simOut/Daughter1_inherited_state.cPickle"
-    daughter-b: "/wcEcoli/sim_out/manual/wildtype_{{sim_index}}/{{variant_index}}/generation_{{generation}}/{{branch}}/simOut/Daughter2_inherited_state.cPickle"
+    daughter-a: "/wcEcoli/sim_out/manual/{{variant-function}}_{{variant-index}}/{{sim-index}}/generation_{{generation}}/{{branch}}/simOut/Daughter1_inherited_state.cPickle"
+    daughter-b: "/wcEcoli/sim_out/manual/{{variant-function}}_{{variant-index}}/{{sim-index}}/generation_{{generation}}/{{branch}}/simOut/Daughter2_inherited_state.cPickle"
   commands:
     - command:
         - "python"
@@ -230,14 +232,13 @@
         - "--output_directory"
         - "{{sim-out}}"
 
-- key: analysis-type
+- key: analysis-single
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
   vars:
-    analysis-type: "single"
+    metadata: "{}"
   inputs:
     sim-data: "/wcEcoli/sim_data.cPickle"
     validation-data: "/wcEcoli/validation_data.cPickle"
-    metadata: "/wcEcoli/metadata/"
     sim-out: "/wcEcoli/sim_out/"
   outputs:
     output-plots: "/wcEcoli/plot_out/"
@@ -247,7 +248,7 @@
         - "-u"
         - "runscripts/manual/runTask.py"
         - "--task"
-        - "analysis_{{analysis-type}}"
+        - "analysis_single"
         - "--input_results_directory"
         - "{{sim-out}}"
         - "--input_sim_data"
@@ -257,4 +258,32 @@
         - "--output_plots_directory"
         - "{{output-plots}}"
         - "--metadata"
-        - "{{metadata}}"
+        - "'{{metadata}}'"
+
+- key: analysis-multigen
+  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  vars:
+    metadata: "{}"
+  inputs:
+    sim-data: "/wcEcoli/sim_data.cPickle"
+    validation-data: "/wcEcoli/validation_data.cPickle"
+    sim-out: "/wcEcoli/sim_out/"
+  outputs:
+    output-plots: "/wcEcoli/plot_out/"
+  commands:
+    - command:
+        - "python"
+        - "-u"
+        - "runscripts/manual/runTask.py"
+        - "--task"
+        - "analysis_multigen"
+        - "--input_results_directory"
+        - "{{sim-out}}"
+        - "--input_sim_data"
+        - "{{sim-data}}"
+        - "--input_validation_data"
+        - "{{validation-data}}"
+        - "--output_plots_directory"
+        - "{{output-plots}}"
+        - "--metadata"
+        - "'{{metadata}}'"
