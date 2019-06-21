@@ -216,6 +216,7 @@
                 (resource/wrap-resource "public")
                 (keyword/wrap-keyword-params)
                 (params/wrap-params))]
+    (println config)
     (http/start-server app {:port 24442})
     state))
 
