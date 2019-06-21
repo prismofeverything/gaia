@@ -38,7 +38,8 @@
                     (fn [node]
                       (if (atom? node)
                         @node
-                        node)))]
+                        node))
+                    body)]
     {:status 200
      :headers {"content-type" "application/json"}
      :body (json/generate-string deatomized)}))
