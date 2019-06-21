@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-find $1 -name '*aea*' -exec bash -c 'for aea; do
-  aia=`echo $aea | sed s/aea/aia/g`
-  git mv "$aea" "$aia"
-done' _ {} +

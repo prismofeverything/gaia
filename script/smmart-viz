@@ -1,9 +1,0 @@
-fexpression
-input: samples, genes (transcripts)
-output: sample by expression matrix, sample by response to compound matrix
-
-fvariant
-input: samples, variant type, sequence, position
-output: vector of boolean, whether present or not
-
-fresponse

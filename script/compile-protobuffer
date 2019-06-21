@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-# protoc --java_out=server/src/main/java/ server/src/main/protobuf/bmeg/gaea/schema/variant.proto 
-protoc --java_out=server/src/main/java/ server/src/main/protobuf/bmeg/gaea/schema/sample.proto 
