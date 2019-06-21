@@ -1,22 +1,23 @@
 {:kafka
- {:base
-  {:host "localhost"
-   :port "9092"}}
+ {:host "localhost"
+  :port "9092"
+  :status-topic "sisyphus-status"}
 
  :mongo
  {:host "127.0.0.1"
   :port 27017
   :database "test"}
 
+ :rabbit
+ {:host "localhost"}
+
  :executor
- {:target "funnel"
-  :host "http://localhost:19191"
-  :path "/Users/spanglry/Data/funnel"
-  :zone "gaia"}
+ {:target "sisyphus"
+  :path ""}
 
  :store
- {:type :file
-  :root "/Users/spanglry/Data/funnel"}
+ {:type :cloud
+  :root ""}
 
  :flow
- {:path "../biostream/bmeg-etl/bmeg"}}
+ {:path "resources/test/wcm/wcm"}}
