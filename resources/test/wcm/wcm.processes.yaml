@@ -12,7 +12,7 @@
     metadata: "sisyphus:data/wcm/gaia/test/metadata"
 
 - key: test-analysis
-  command: analysis-single
+  command: analysis
   inputs:
     sim-out: "sisyphus:data/wcm/gaia/test/sim-out"
     metadata: "sisyphus:data/wcm/gaia/test/metadata"
@@ -33,7 +33,7 @@
     metadata: "sisyphus:data/wcm/gaia/again/metadata"
 
 - key: again-analysis
-  command: analysis-single
+  command: analysis
   inputs:
     sim-out: "sisyphus:data/wcm/gaia/again/sim-out"
     metadata: "sisyphus:data/wcm/gaia/again/metadata"
