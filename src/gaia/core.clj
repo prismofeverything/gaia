@@ -22,6 +22,10 @@
   (:import
    [java.io InputStreamReader]))
 
+(defn atom?
+  [x]
+  (instance? clojure.lang.IAtom x))
+
 (defn read-json
   [body]
   (json/parse-stream (InputStreamReader. body) keyword))
