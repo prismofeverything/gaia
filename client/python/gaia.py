@@ -5,7 +5,7 @@ import requests
 
 def load_yaml(path):
     handle = open(path)
-    load = yaml.load(handle)
+    load = yaml.safe_load(handle)
     handle.close()
     return load
 

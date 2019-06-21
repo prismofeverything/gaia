@@ -1,5 +1,6 @@
 (ns gaia.core
   (:require
+   [clojure.walk :as walk]
    [clojure.string :as string]
    [clojure.tools.cli :as cli]
    [taoensso.timbre :as log]
@@ -33,9 +34,14 @@
 
 (defn response
   [body]
-  {:status 200
-   :headers {"content-type" "application/json"}
-   :body (json/generate-string body)})
+  (let [deatomized (walk/postwalk
+                    (fn [node]
+                      (if (atom? node)
+                        @node
+                        node)))]
+    {:status 200
+     :headers {"content-type" "application/json"}
+     :body (json/generate-string deatomized)}))
 
 (defn index-handler
   [state]
