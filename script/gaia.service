@@ -1,0 +1,18 @@
+# place this file in /etc/systemd/system/gaia.service
+#
+# then:
+#   > sudo systemctl start gaia
+#   > sudo systemctl enable gaia
+
+[Unit]
+Description=Gaia
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /home/gaia/gaia/script/boot.sh
+User=gaia
+Group=gaia
+Environment=GOOGLE_APPLICATION_CREDENTIALS=/home/gaia/.cloud.json
+
+[Install]
+WantedBy=multi-user.target

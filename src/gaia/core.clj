@@ -80,9 +80,9 @@
      :executor executor}))
 
 (defn initialize-flow!
-  [{:keys [config commands executor store] :as state} root]
+  [{:keys [commands executor store kafka] :as state} root]
   (let [pointed (store (name root))]
-    (sync/initialize-flow! root pointed executor (:kafka config) commands)))
+    (sync/initialize-flow! root pointed executor kafka commands)))
 
 (defn find-flow!
   [{:keys [flows] :as state} root]
