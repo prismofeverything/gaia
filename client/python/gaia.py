@@ -58,6 +58,9 @@ class Gaia(object):
             'root': root,
             'expire': keys})
 
+	def launch(self, key):
+		os.system("../../script/launch-sisyphus.sh {}".format(key))
+
 class Flow(object):
 	pass
 
