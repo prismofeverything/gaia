@@ -31,13 +31,37 @@ At each cycle, Gaia compares the keys that are present to the inputs of processe
 
 Gaia has both a server to launch these computations and a client to interact with the server, trigger new processes or commands, or gather information about the status of each process or data key (initialized/running/error/complete).
 
+## gcloud setup
+
+If you want to control Gaia from a google cloud instance, allocate a new instance, then ssh in:
+
+    gcloud compute ssh new-instance
+
+You have to do some setup to have the right credentials for executing gcloud commands from this new VM. First, download the credentials as JSON from the gcloud console (in the IAM > Service Accounts). We have a `sisyphus` service account for this with permissions to create and delete instances and access storage. Once you get the key in put it somewhere (I have it under ~/.cloud.json). Then you can do the following:
+
+    echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/.cloud.json" >> /etc/environment
+
+(log out and log back in):
+
+    gcloud auth activate-service-account sisyphus@allen-discovery-center-mcovert.iam.gserviceaccount.com --key-file ~/.cloud.json
+
+Once here, you want to be able to send processes and commands to Gaia. First, clone this repo and go to the client:
+
+    git clone https://github.com/prismofeverything/gaia.git
+    cd gaia/client/python
+    pip install -r requirements.txt
+    ipython
+
+(you might have to install ipython, pip etc)
+
 ## client
 
 The python client for Gaia lives at `client/python/gaia.py`. To connect to a running Gaia instance, find the host and do the following:
 
 ```
 import gaia
-host = "localhost:24442"
+GAIA_HOST = "10.138.0.21"
+host = "{}:24442".format(GAIA_HOST)
 flow = gaia.Gaia(host)
 ```
 
@@ -51,6 +75,21 @@ Now that we have a reference to the client, there are several methods we can cal
 * expire - recompute a given key (process or data) and all of its dependent processes
 
 All of these methods are relative to a given namespace (root) except for `command`, which operates globally to all namespaces.
+
+To just get something going, run the workflow in WCM:
+
+```
+wcm = gaia.load_yaml('../../resources/test/wcm/wcm.processes.yaml')
+flow.merge('wcm', wcm)
+```
+
+You will also need to launch some sisyphus workers. To do that:
+
+```
+flow.launch('worker-a')
+```
+
+Launch more if you want : ) Give each a unique key. They will deallocate after 5 minutes of inactivity.
 
 ### command
 
