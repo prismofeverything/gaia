@@ -90,7 +90,7 @@ class Gaia(object):
 
     def launch(self, keys):
         def launch_sisyphus(key):
-            return os.system("../../script/launch-sisyphus.sh {}".format(key))
+            os.system("../../script/launch-sisyphus.sh {}".format(key))
 
         pool = multiprocessing.Pool(10)
         pool.map(launch_sisyphus, keys)
