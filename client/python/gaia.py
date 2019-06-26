@@ -47,6 +47,9 @@ def process(key, command, inputs, outputs, var={}):
 
     return out
 
+def launch_sisyphus(key):
+    os.system("../../script/launch-sisyphus.sh {}".format(key))
+
 class Gaia(object):
     def __init__(self, config):
         self.protocol = "http://"
@@ -89,14 +92,8 @@ class Gaia(object):
             'expire': keys})
 
     def launch(self, keys):
-        def launch_sisyphus(key):
-            os.system("../../script/launch-sisyphus.sh {}".format(key))
-
         pool = multiprocessing.Pool(10)
         pool.map(launch_sisyphus, keys)
-        # return {
-        #     key: os.system("../../script/launch-sisyphus.sh {}".format(key))
-        #     for key in keys}
 
     def receive(self, topic, message):
         print("{}: {}".format(topic, message))
