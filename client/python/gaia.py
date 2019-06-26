@@ -52,7 +52,9 @@ class Gaia(object):
         self.host = config.get('gaia_host', 'localhost:24442')
         self.consumer = initialize_consumer({
             'host': config.get('kafka_host', '127.0.0.1:9092'),
-            'subscribe': [config.get('log_topic', 'sisyphus-log')]})
+            'subscribe': [
+                config.get('log_topic', 'sisyphus-log'),
+                config.get('status_topic', 'sisyphus-status')]})
 
     def post(self, endpoint, data):
         url = self.protocol + self.host + '/' + endpoint

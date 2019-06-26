@@ -60,9 +60,10 @@ The python client for Gaia lives at `client/python/gaia.py`. To connect to a run
 
 ```
 import gaia
-GAIA_HOST = "10.138.0.21"
-host = "{}:24442".format(GAIA_HOST)
-flow = gaia.Gaia(host)
+config = {
+    'gaia_host': '10.138.0.21:24442',
+    'kafka_host': '10.138.0.2:9092'}
+flow = gaia.Gaia(config)
 ```
 
 Now that we have a reference to the client, there are several methods we can call.
