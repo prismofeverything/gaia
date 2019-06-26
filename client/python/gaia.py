@@ -92,8 +92,8 @@ class Gaia(object):
             key: os.system("../../script/launch-sisyphus.sh {}".format(key))
             for key in keys}
 
-    def receive(self, message):
-        print(message)
+    def receive(self, topic, message):
+        print("{}: {}".format(topic, message))
 
     def listen(self):
         self.running = True
