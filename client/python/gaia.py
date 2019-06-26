@@ -4,6 +4,7 @@ import json
 import uuid
 import yaml
 import requests
+import multiprocessing
 
 from confluent_kafka import Producer, Consumer, KafkaError
 
@@ -88,9 +89,14 @@ class Gaia(object):
             'expire': keys})
 
     def launch(self, keys):
-        return {
-            key: os.system("../../script/launch-sisyphus.sh {}".format(key))
-            for key in keys}
+        def launch_sisyphus(key):
+            return os.system("../../script/launch-sisyphus.sh {}".format(key))
+
+        pool = multiprocessing.Pool(10)
+        pool.map(launch_sisyphus, keys)
+        # return {
+        #     key: os.system("../../script/launch-sisyphus.sh {}".format(key))
+        #     for key in keys}
 
     def receive(self, topic, message):
         print("{}: {}".format(topic, message))
