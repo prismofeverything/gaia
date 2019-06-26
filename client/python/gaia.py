@@ -1,7 +1,8 @@
 import os
 import sys
-import yaml
 import json
+import uuid
+import yaml
 import requests
 
 from confluent_kafka import Producer, Consumer, KafkaError
