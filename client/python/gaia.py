@@ -4,6 +4,27 @@ import yaml
 import json
 import requests
 
+from confluent_kafka import Producer, Consumer, KafkaError
+
+def delivery_report(err, msg):
+	"""
+	This is a utility method passed to the Kafka Producer to handle the delivery
+	of messages sent using `send(topic, message)`. 
+	"""
+	if err is not None:
+		print('message delivery failed: {}'.format(msg))
+		print('failed message: {}'.format(err))
+
+def initialize_consumer(config):
+	consumer = Consumer({
+		'bootstrap.servers': config['host'],
+		'enable.auto.commit': True,
+		'group.id': uuid.uuid1(),
+		'default.topic.config': {
+			'auto.offset.reset': 'latest'}})
+
+	consumer.subscribe(config['subscribe'])
+
 def load_yaml(path):
     handle = open(path)
     load = yaml.safe_load(handle)
@@ -24,9 +45,12 @@ def process(key, command, inputs, outputs, var={}):
     return out
 
 class Gaia(object):
-    def __init__(self, host):
+    def __init__(self, config):
         self.protocol = "http://"
-        self.host = host
+        self.host = config.get('gaia_host', 'localhost:24442')
+		self.consumer = initialize_consumer({
+			'host': config.get('kafka_host', '127.0.0.1:9092'),
+			'subscribe': config.get('log_topic', 'sisyphus-log')})
 
     def post(self, endpoint, data):
         url = self.protocol + self.host + '/' + endpoint
@@ -63,6 +87,30 @@ class Gaia(object):
 		return {
 			key: os.system("../../script/launch-sisyphus.sh {}".format(key))
 			for key in keys}
+
+	def receive(self, message):
+		print(message)
+
+	def listen(self):
+		self.running = True
+		while self.running:
+			raw = self.consumer.poll(timeout=1.0)
+
+			if raw is None:
+				continue
+			if raw.error():
+				if raw.error().code() == KafkaError._PARTITION_EOF:
+					continue
+				else:
+					print('Error in kafka consumer:', raw.error())
+					self.running = False
+
+			else:
+				message = json.loads(raw.value())
+				if not message:
+					continue
+
+				self.receive(raw.topic(), message)
 
 class Flow(object):
     pass
