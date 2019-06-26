@@ -25,7 +25,7 @@ def initialize_consumer(config):
             'auto.offset.reset': 'latest'}})
 
     consumer.subscribe(config['subscribe'])
-	return consumer
+    return consumer
 
 def load_yaml(path):
     handle = open(path)
