@@ -176,13 +176,13 @@
     flow))
 
 (defn trigger-flow!
-  [{:keys [flow store status tasks] :as state} executor commands]
+  [{:keys [flow store status tasks] :as state} root executor commands]
   (send tasks (fn [prior now] now) {})
   (swap!
    status
    (comp
     (partial activate-front! state @flow executor @commands)
-    (partial find-existing store))))
+    (partial find-existing store root))))
 
 (defn dissoc-seq
   [m s]

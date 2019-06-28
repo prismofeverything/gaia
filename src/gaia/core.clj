@@ -114,7 +114,7 @@
 (defn trigger-flow!
   [{:keys [commands executor flows] :as state} root]
   (let [flow (find-flow! state root)]
-    (sync/trigger-flow! flow executor commands)
+    (sync/trigger-flow! flow root executor commands)
     state))
 
 (defn halt-flow!
