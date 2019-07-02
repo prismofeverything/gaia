@@ -51,14 +51,18 @@
       [k {:state :computing}])
     (vals (:outputs process)))))
 
+(defn complete?
+  [datum]
+  (= :complete (keyword (:state datum))))
+
 (defn complete-keys
   [data]
   (set
    (map
     first
     (filter
-     (fn [[k v]]
-       (= :complete (keyword (:state v))))
+     (fn [[_ datum]]
+       (complete? datum))
      data))))
 
 (defn missing-data

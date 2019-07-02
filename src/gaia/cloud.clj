@@ -19,7 +19,6 @@
   (into-array
    Storage$BlobListOption
    [(Storage$BlobListOption/prefix directory)]))
-;; (Storage$BlobListOption/currentDirectory)
 
 (defn list-directory
   [storage bucket directory]
