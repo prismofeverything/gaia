@@ -26,8 +26,8 @@
 
 (defn send-tasks!
   [executor store commands prior tasks]
-  (println "PRIOR" prior)
-  (println "TASKS" tasks)
+  (log/info "PRIOR" prior)
+  (log/info "TASKS" tasks)
   (let [relevant (remove (comp (partial get prior) first) tasks)
         submit! (partial executor/submit! executor commands)
         triggered (into
@@ -86,16 +86,10 @@
           (assoc status :state :incomplete)))
       (let [active (flow/process-map flow front)
             current @tasks
-            ;; chosen (remove
-            ;;         (fn [act]
-            ;;           (get current act))
-            ;;         (keys active))
-            ;; launching (select-keys active chosen)
             launching (apply dissoc active (keys current))
             computing (apply merge (map compute-outputs (vals launching)))]
-        (println "ACTIVE" active)
-        (println "LAUNCHING" launching)
-        (println "COMPUTING" computing)
+        (log/info "ACTIVE" active)
+        (log/info "LAUNCHING" launching)
         (send tasks (partial send-tasks! executor store commands) launching)
         (-> status
             (update :data merge computing)
@@ -198,6 +192,7 @@
   [descendants status]
   (update status :data dissoc-seq descendants))
 
+;; TODO(ryan): get this to work with the new flow/find-descendants
 (defn expire-keys!
   [{:keys [flow status tasks] :as state} executor commands expiring]
   (let [now (deref flow)
