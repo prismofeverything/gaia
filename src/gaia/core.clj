@@ -61,7 +61,6 @@
         flows (atom {})
         store (config/load-store (:store config))
         rabbit (rabbit/connect! (:rabbit config))
-        grandfather (store "")
         kafka (:kafka config)
         producer (kafka/boot-producer kafka)
         kafka (assoc kafka :producer producer)
@@ -69,8 +68,7 @@
                      (:executor config)
                      :kafka kafka
                      :rabbit rabbit)
-        prefix (str (store/protocol grandfather) (:path exec-config))
-        executor (config/load-executor exec-config prefix)]
+        executor (config/load-executor exec-config)]
     {:config config
      :rabbit rabbit
      :kafka kafka
@@ -215,6 +213,17 @@
 (def parse-args
   [["-c" "--config CONFIG" "path to config file"]
    ["-i" "--input INPUT" "input file or directory"]])
+
+(defn wrap-error
+  [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch Exception e
+        (println "bad request -" request)
+        (response
+         {:error "bad request"
+          :request request})))))
 
 (defn start
   [options]

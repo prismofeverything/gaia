@@ -42,12 +42,6 @@
     (let [[bucket path] (split-path key)]
       (exists? storage bucket (store/join-path [container path]))))
   (protocol [store] "")
-  (url-root [store] "")
-  (key->url
-    [store key]
-    (let [[bucket path] (split-path key)
-          path (store/join-path [container path])]
-      (str bucket ":" path)))
   (existing-keys
     [store root]
     (let [[bucket path] (split-path root)]

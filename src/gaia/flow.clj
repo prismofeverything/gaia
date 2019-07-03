@@ -15,15 +15,13 @@
 
 (defn unfix
   [bound]
-  (string/join
-   ":"
-   (rest
-    (string/split bound #":"))))
+  (let [colon (.indexOf bound ":")]
+    (.substring bound (inc colon))))
 
 (defn process-init
   [{:keys [key inputs outputs] :as process}]
   (let [process-key (prefix "process" key)
-        node [key (assoc process :_process true)]
+        node [process-key (assoc process :_process true)]
         incoming (map
                   (fn [input]
                     [(prefix "data" input) process-key])
@@ -47,12 +45,12 @@
     (apply graph/build-graph flow init)))
 
 (defn node-map
-  [flow nodes]
+  [pre flow nodes]
   (into
    {}
    (map
     (fn [node]
-      [(unfix node) (graph/attrs flow node)])
+      [node (graph/attrs flow (prefix pre node))])
     nodes)))
 
 (defn process-nodes
@@ -63,8 +61,10 @@
      nodes)))
 
 (defn process-map
-  [flow]
-  (node-map flow (process-nodes flow)))
+  ([flow]
+   (process-map flow (map unfix (process-nodes flow))))
+  ([flow nodes]
+   (node-map "process" flow nodes)))
 
 (defn data-nodes
   [flow]
@@ -74,8 +74,10 @@
      nodes)))
 
 (defn data-map
-  [flow]
-  (node-map flow (data-nodes flow)))
+  ([flow]
+   (data-map flow (map unfix (data-nodes flow))))
+  ([flow nodes]
+   (node-map "data" flow nodes)))
 
 (defn map-prefix
   [pre nodes]
@@ -84,7 +86,7 @@
 (defn imminent-front
   [flow data]
   (let [processes (process-nodes flow)
-        prefix-data (map-prefix "data" data)]
+        prefix-data (set (map-prefix "data" data))]
     (map
      unfix
      (filter

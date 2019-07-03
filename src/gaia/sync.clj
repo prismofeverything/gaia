@@ -68,7 +68,7 @@
 (defn missing-data
   [flow data]
   (let [complete (complete-keys data)
-        space (set (flow/data-nodes flow))]
+        space (keys (flow/data-map flow))]
     (set/difference space complete)))
 
 (defn activate-front!
@@ -83,12 +83,14 @@
         (if (empty? missing)
           (assoc status :state :complete)
           (assoc status :state :incomplete)))
-      (let [active (flow/node-map flow front)
+      (let [active (flow/process-map flow front)
             current @tasks
-            chosen (remove
-                    (fn [act] (get current act))
-                    (keys active))
-            launching (select-keys active chosen)
+            ;; chosen (remove
+            ;;         (fn [act]
+            ;;           (get current act))
+            ;;         (keys active))
+            ;; launching (select-keys active chosen)
+            launching (apply dissoc active (keys current))
             computing (apply merge (map compute-outputs (vals launching)))]
         (println "ACTIVE" active)
         (println "LAUNCHING" launching)
@@ -231,9 +233,9 @@
 
 (defn halt-flow!
   [{:keys [root flow tasks status events] :as state} executor]
-  (let [halting (flow/process-nodes @flow)]
+  (let [halting (flow/process-map @flow)]
     (swap! status assoc :state :halted)
-    (cancel-tasks! tasks executor halting)
+    (cancel-tasks! tasks executor (keys halting))
     (executor/declare-event!
      events
      {:event "flow-halted"

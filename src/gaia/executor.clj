@@ -5,7 +5,7 @@
    [sisyphus.kafka :as kafka]))
 
 (defprotocol Executor
-  (submit! [executor store commands process])
+  (submit! [executor commands process])
   (cancel! [executor id]))
 
 (defn declare-event!
