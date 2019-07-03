@@ -21,20 +21,18 @@
 
 (defn process->task
   [process command]
-  (println "PROCESS" process)
-  (println "COMMAND" command)
   {:id (or (:id process) (generate-id))
+   :space (:space process "gaia")
    :image (:image command)
    :commands (:commands command)
    :inputs (find-xputs process command :inputs)
    :outputs (find-xputs process command :outputs)})
 
 (defn submit-task!
-  [{:keys [rabbit]} prefix commands process]
-  (println "COMMANDS" commands)
+  [{:keys [rabbit]} commands process]
   (let [command (get commands (keyword (:command process)))
         task (process->task process command)]
-    (rabbit/publish! rabbit (assoc task :prefix prefix))
+    (rabbit/publish! rabbit task)
     task))
 
 (defn cancel-task!
@@ -45,16 +43,16 @@
    {:event "terminate"
     :id id}))
 
-(deftype SisyphusExecutor [sisyphus prefix]
+(deftype SisyphusExecutor [sisyphus]
   executor/Executor
   (submit!
-    [executor store commands process]
-    (submit-task! sisyphus prefix commands process))
+    [executor commands process]
+    (submit-task! sisyphus commands process))
   (cancel!
     [executor id]
     (cancel-task! sisyphus id)))
 
 (defn load-sisyphus-executor
   "required keys are :rabbit and :kafka"
-  [config prefix]
-  (SisyphusExecutor. config prefix))
+  [config]
+  (SisyphusExecutor. config))

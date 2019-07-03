@@ -10,7 +10,6 @@
    [gaia.store :as store]
    [gaia.swift :as swift]
    [gaia.cloud :as cloud]
-   [gaia.funnel :as funnel]
    [gaia.sisyphus :as sisyphus]))
 
 (def config-keys
@@ -64,7 +63,6 @@
     (store/file-store-generator config)))
 
 (defn load-executor
-  [config prefix]
+  [config]
   (condp = (keyword (:target config))
-    :funnel (funnel/load-funnel-executor config prefix)
-    :sisyphus (sisyphus/load-sisyphus-executor config prefix)))
+    :sisyphus (sisyphus/load-sisyphus-executor config)))

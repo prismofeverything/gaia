@@ -19,7 +19,6 @@
   (into-array
    Storage$BlobListOption
    [(Storage$BlobListOption/prefix directory)]))
-;; (Storage$BlobListOption/currentDirectory)
 
 (defn list-directory
   [storage bucket directory]
@@ -28,7 +27,7 @@
     (map
      (fn [x]
        (str bucket ":" (.getName x)))
-     (.getValues blobs))))
+     (.iterateAll blobs))))
 
 (defn split-path
   [key]
@@ -43,12 +42,6 @@
     (let [[bucket path] (split-path key)]
       (exists? storage bucket (store/join-path [container path]))))
   (protocol [store] "")
-  (url-root [store] "")
-  (key->url
-    [store key]
-    (let [[bucket path] (split-path key)
-          path (store/join-path [container path])]
-      (str bucket ":" path)))
   (existing-keys
     [store root]
     (let [[bucket path] (split-path root)]

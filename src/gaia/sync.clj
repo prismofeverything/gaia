@@ -26,10 +26,10 @@
 
 (defn send-tasks!
   [executor store commands prior tasks]
-  (println "PRIOR" prior)
-  (println "TASKS" tasks)
+  (log/info "PRIOR" prior)
+  (log/info "TASKS" tasks)
   (let [relevant (remove (comp (partial get prior) first) tasks)
-        submit! (partial executor/submit! executor store commands)
+        submit! (partial executor/submit! executor commands)
         triggered (into
                    {}
                    (map
@@ -51,44 +51,45 @@
       [k {:state :computing}])
     (vals (:outputs process)))))
 
+(defn complete?
+  [datum]
+  (= :complete (keyword (:state datum))))
+
 (defn complete-keys
   [data]
   (set
    (map
     first
     (filter
-     (fn [[k v]]
-       (= :complete (keyword (:state v))))
+     (fn [[_ datum]]
+       (complete? datum))
      data))))
 
 (defn missing-data
   [flow data]
   (let [complete (complete-keys data)
-        space (set (flow/data-nodes flow))]
+        space (set (keys (flow/data-map flow)))]
     (set/difference space complete)))
 
 (defn activate-front!
   [{:keys [store tasks] :as state} flow executor commands status]
-  (println "DATA" (:data status))
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
-    (log/info "front" front)
+    (log/info "COMPLETE KEYS" (count (sort complete)))
+    (log/info "FRONT" front)
+    (log/info "WAITING FOR" (flow/missing-data flow complete))
     (if (empty? front)
       (let [missing (missing-data flow (:data status))]
         (log/info "empty front - missing" missing)
         (if (empty? missing)
           (assoc status :state :complete)
           (assoc status :state :incomplete)))
-      (let [active (flow/node-map flow front)
+      (let [active (flow/process-map flow front)
             current @tasks
-            chosen (remove
-                    (fn [act] (get current act))
-                    (keys active))
-            launching (select-keys active chosen)
+            launching (apply dissoc active (keys current))
             computing (apply merge (map compute-outputs (vals launching)))]
-        (println "ACTIVE" active)
-        (println "LAUNCHING" launching)
-        (println "COMPUTING" computing)
+        (log/info "ACTIVE" active)
+        (log/info "LAUNCHING" launching)
         (send tasks (partial send-tasks! executor store commands) launching)
         (-> status
             (update :data merge computing)
@@ -157,7 +158,6 @@
 (defn find-existing
   [store root status]
   (let [existing (store/existing-paths store root)]
-    (println "EXISTING" existing)
     (assoc status :data existing)))
 
 (defn events-listener!
@@ -192,6 +192,7 @@
   [descendants status]
   (update status :data dissoc-seq descendants))
 
+;; TODO(ryan): get this to work with the new flow/find-descendants
 (defn expire-keys!
   [{:keys [flow status tasks] :as state} executor commands expiring]
   (let [now (deref flow)
@@ -227,9 +228,9 @@
 
 (defn halt-flow!
   [{:keys [root flow tasks status events] :as state} executor]
-  (let [halting (flow/process-nodes @flow)]
+  (let [halting (flow/process-map @flow)]
     (swap! status assoc :state :halted)
-    (cancel-tasks! tasks executor halting)
+    (cancel-tasks! tasks executor (keys halting))
     (executor/declare-event!
      events
      {:event "flow-halted"

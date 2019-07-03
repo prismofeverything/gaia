@@ -5,9 +5,8 @@
    [protograph.kafka :as kafka]))
 
 (defn join-path
-  [fragments]
-  (let [separator (java.io.File/separator)]
-    (string/join separator fragments)))
+  [elements]
+  (.getPath (apply io/file elements)))
 
 (defn snip
   [s prefix]
@@ -34,9 +33,6 @@
 (defprotocol Store
   (present? [store key])
   (protocol [store])
-  (url-root [store])
-  (key->url [store key])
-  ;; (delete [store key])
   (existing-keys [store path]))
 
 (defprotocol Bus
@@ -55,17 +51,9 @@
           file (io/file path)]
       (.exists file)))
   (protocol [store] "file://")
-  (url-root [store] (str root container "/"))
-  (key->url [store key]
-    (str
-     (protocol store)
-     (str root (join-path [container (name key)]))))
-  ;; (delete [store key]
-  ;;   (io/delete-file
-  ;;    (str root (join-path [container (name key)]))))
   (existing-keys
     [store path]
-    (let [base (url-root store)
+    (let [base (str root container "/")
           files (kafka/dir->files base)]
       (mapv (partial file->key base) files))))
 
@@ -80,7 +68,7 @@
      {}
      (map
       (fn [key]
-        [key {:url (str (url-root store) key) :state :complete}])
+        [key {:state :complete}])
       existing))))
 
 (defn load-file-store
