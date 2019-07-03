@@ -83,6 +83,27 @@
   [pre nodes]
   (map (partial prefix pre) nodes))
 
+(defn full-node
+  [flow node]
+  {:node node
+   :incoming (graph/predecessors flow node)
+   :outgoing (graph/successors flow node)})
+
+(defn missing-data
+  [flow data]
+  (let [processes (process-nodes flow)
+        full (map (partial full-node flow) processes)
+        prefix-data (set (map-prefix "data" data))
+        incomplete
+        (filter
+         (fn [{:keys [node incoming outgoing]}]
+           (and
+            (not-every? prefix-data incoming)
+            (not-every? prefix-data outgoing)))
+         full)
+        inputs (set (mapcat :incoming incomplete))]
+    (mapv unfix (set/difference inputs prefix-data))))
+
 (defn imminent-front
   [flow data]
   (let [processes (process-nodes flow)

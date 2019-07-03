@@ -29,7 +29,7 @@
   (println "PRIOR" prior)
   (println "TASKS" tasks)
   (let [relevant (remove (comp (partial get prior) first) tasks)
-        submit! (partial executor/submit! executor store commands)
+        submit! (partial executor/submit! executor commands)
         triggered (into
                    {}
                    (map
@@ -73,10 +73,11 @@
 
 (defn activate-front!
   [{:keys [store tasks] :as state} flow executor commands status]
-  (println "DATA" (:data status))
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
-    (log/info "front" front)
+    (log/info "COMPLETE KEYS" (count (sort complete)))
+    (log/info "FRONT" front)
+    (log/info "WAITING FOR" (flow/missing-data flow complete))
     (if (empty? front)
       (let [missing (missing-data flow (:data status))]
         (log/info "empty front - missing" missing)
@@ -163,7 +164,6 @@
 (defn find-existing
   [store root status]
   (let [existing (store/existing-paths store root)]
-    (println "EXISTING" existing)
     (assoc status :data existing)))
 
 (defn events-listener!

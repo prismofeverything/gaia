@@ -27,7 +27,7 @@
     (map
      (fn [x]
        (str bucket ":" (.getName x)))
-     (.getValues blobs))))
+     (.iterateAll blobs))))
 
 (defn split-path
   [key]
