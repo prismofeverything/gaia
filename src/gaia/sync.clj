@@ -68,7 +68,7 @@
 (defn missing-data
   [flow data]
   (let [complete (complete-keys data)
-        space (keys (flow/data-map flow))]
+        space (set (keys (flow/data-map flow)))]
     (set/difference space complete)))
 
 (defn activate-front!
