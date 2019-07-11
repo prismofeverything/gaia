@@ -65,8 +65,9 @@ class Gaia(object):
         data=json.dumps(data)
         return requests.post(url, data=data).json()
 
-    def command(self, commands=[]):
+    def command(self, root, commands=[]):
         return self.post('command', {
+			'root': root,
             'commands': commands})
 
     def merge(self, root, processes):

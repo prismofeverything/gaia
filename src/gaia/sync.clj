@@ -12,10 +12,11 @@
    [gaia.executor :as executor]))
 
 (defn generate-sync
-  [kafka root processes store]
-  (let [flow (flow/generate-flow (vals processes))]
+  [root kafka store]
+  (let [flow (flow/generate-flow [])]
     {:root root
      :flow (atom flow)
+     :commands (atom {})
      :store store
      :events (:producer kafka)
      :status
@@ -25,7 +26,7 @@
      :tasks (agent {})}))
 
 (defn send-tasks!
-  [executor store commands prior tasks]
+  [root executor store commands prior tasks]
   (log/info "PRIOR" prior)
   (log/info "TASKS" tasks)
   (let [relevant (remove (comp (partial get prior) first) tasks)
@@ -34,7 +35,9 @@
                    {}
                    (map
                     (fn [[key task]]
-                      [key (submit! task)])
+                      [key
+                       (submit!
+                        (assoc task :root root))])
                     relevant))]
     (merge triggered prior)))
 
@@ -72,7 +75,7 @@
     (set/difference space complete)))
 
 (defn activate-front!
-  [{:keys [store tasks] :as state} flow executor commands status]
+  [{:keys [root store tasks] :as state} flow executor commands status]
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
     (log/info "COMPLETE KEYS" (sort complete))
@@ -90,7 +93,7 @@
             computing (apply merge (map compute-outputs (vals launching)))]
         (log/info "ACTIVE" active)
         (log/info "LAUNCHING" launching)
-        (send tasks (partial send-tasks! executor store commands) launching)
+        (send tasks (partial send-tasks! root executor store commands) launching)
         (-> status
             (update :data merge computing)
             (assoc :state :running))))))
@@ -115,7 +118,7 @@
    event))
 
 (defn data-complete!
-  [{:keys [flow status events] :as state} executor commands root event]
+  [{:keys [root flow commands status events] :as state} executor event]
   (if (= :halted (:state @status))
     (swap! status update :data dissoc (:key event))
     (do
@@ -141,8 +144,8 @@
         (log/info "FLOW CONTINUES" root)))))
 
 (defn executor-events!
-  [{:keys [status] :as state}
-   executor commands root topic event]
+  [{:keys [status root] :as state}
+   executor topic event]
   (log/info "GAIA EVENT" event)
   (condp = (:event event)
 
@@ -151,14 +154,9 @@
 
     "data-complete"
     (when (= (:root event) (name root))
-      (data-complete! state executor commands root event))
+      (data-complete! state executor event))
 
     (log/info "other executor event" event)))
-
-;; (defn find-existing
-;;   [store root status]
-;;   (let [existing (store/existing-paths store root)]
-;;     (assoc status :data existing)))
 
 (defn initial-key
   [key]
@@ -172,11 +170,11 @@
     (assoc status :data existing)))
 
 (defn events-listener!
-  [state executor commands root kafka]
+  [state executor kafka]
   (let [status-topic (get kafka :status-topic "gaia-status")
         topics ["gaia-events" status-topic]
         kafka (update kafka :subscribe concat topics)
-        handle (partial executor-events! state executor commands root)]
+        handle (partial executor-events! state executor)]
     (kafka/boot-consumer kafka handle)))
 
 (defn running-task?
@@ -200,13 +198,13 @@
   (send tasks (partial executor-cancel! executor) canceling))
 
 (defn initialize-flow!
-  [root store executor kafka commands]
-  (let [flow (generate-sync kafka root [] store)
-        listener (events-listener! flow executor commands root kafka)]
+  [root store executor kafka]
+  (let [flow (generate-sync root kafka store)
+        listener (events-listener! flow executor kafka)]
     flow))
 
 (defn trigger-flow!
-  [{:keys [flow store status tasks] :as state} root executor commands]
+  [{:keys [root flow commands store status tasks] :as state} executor]
   (when (not= :running (:state @status))
     (let [now @flow]
       (swap!
@@ -225,7 +223,7 @@
 
 ;; TODO(ryan): get this to work with the new flow/find-descendants
 (defn expire-keys!
-  [{:keys [flow status tasks] :as state} executor commands expiring]
+  [{:keys [flow commands status tasks] :as state} executor expiring]
   (let [now (deref flow)
         {:keys [data process] :as down} (flow/find-descendants now expiring)]
     (send tasks dissoc-seq process)
@@ -253,7 +251,7 @@
       :root root})))
 
 (defn merge-processes!
-  [{:keys [flow status tasks store] :as state} executor commands processes]
+  [{:keys [flow commands status tasks store] :as state} executor processes]
   (let [transform (command/transform-processes @commands processes)]
     (cancel-tasks! tasks executor (keys transform))
     (swap! flow #(flow/merge-processes % (vals transform)))
@@ -265,8 +263,17 @@
         (partial find-existing store now))))))
 
 (defn expire-commands!
-  [{:keys [flow] :as state} executor commands expiring]
+  [{:keys [flow commands] :as state} executor expiring]
   (let [processes (template/map-cat (partial flow/command-processes @flow) expiring)]
     (log/info "expiring processes" processes)
     (log/info "from commands" (into [] expiring))
-    (expire-keys! state executor commands processes)))
+    (expire-keys! state executor processes)))
+
+(defn merge-commands!
+  [{:keys [flow commands status tasks store] :as state} executor merging]
+  (try
+    (expire-commands! state executor (keys merging))
+    (catch Exception e
+      (println e)
+      (.printStackTrace e)))
+  (swap! commands merge merging))

@@ -57,8 +57,7 @@
 
 (defn boot
   [config]
-  (let [commands (atom (:commands config))
-        flows (atom {})
+  (let [flows (atom {})
         store (config/load-store (:store config))
         rabbit (rabbit/connect! (:rabbit config))
         kafka (:kafka config)
@@ -72,15 +71,14 @@
     {:config config
      :rabbit rabbit
      :kafka kafka
-     :commands commands
      :flows flows
      :store store
      :executor executor}))
 
 (defn initialize-flow!
-  [{:keys [commands executor store kafka] :as state} root]
+  [{:keys [executor store kafka] :as state} root]
   (let [pointed (store (name root))]
-    (sync/initialize-flow! root pointed executor kafka commands)))
+    (sync/initialize-flow! root pointed executor kafka)))
 
 (defn find-flow!
   [{:keys [flows] :as state} root]
@@ -91,17 +89,23 @@
       flow)))
 
 (defn merge-commands!
-  [{:keys [flows commands executor] :as state} merging]
-  (let [prior (map name (keys (select-keys @commands (keys merging))))]
-    (log/info "prior commands" (into [] prior))
-    (doseq [[key flow] @flows]
-      (sync/expire-commands! flow executor commands prior))
-    (swap! commands merge merging)))
+  [{:keys [flows executor] :as state} root merging]
+  (let [flow (find-flow! state root)]
+    (sync/merge-commands! flow executor merging)
+    state))
+
+;; (defn merge-commands!
+;;   [{:keys [flows commands executor] :as state} merging]
+;;   (let [prior (map name (keys (select-keys @commands (keys merging))))]
+;;     (log/info "prior commands" (into [] prior))
+;;     (doseq [[key flow] @flows]
+;;       (sync/expire-commands! flow executor commands prior))
+;;     (swap! commands merge merging)))
 
 (defn merge-processes!
-  [{:keys [commands executor] :as state} root processes]
+  [{:keys [executor] :as state} root processes]
   (let [flow (find-flow! state root)]
-    (sync/merge-processes! flow executor commands processes)
+    (sync/merge-processes! flow executor processes)
     state))
 
 (defn load-processes!
@@ -110,9 +114,9 @@
     (merge-processes! state root processes)))
 
 (defn trigger-flow!
-  [{:keys [commands executor flows] :as state} root]
+  [{:keys [executor flows] :as state} root]
   (let [flow (find-flow! state root)]
-    (sync/trigger-flow! flow root executor commands)
+    (sync/trigger-flow! flow executor)
     state))
 
 (defn halt-flow!
@@ -122,11 +126,11 @@
     state))
 
 (defn expire-keys!
-  [{:keys [commands executor] :as state} root expire]
+  [{:keys [executor] :as state} root expire]
   (log/info "expiring keys" root expire)
   (let [flow (find-flow! state root)]
     (log/info "expiring flow" flow)
-    (sync/expire-keys! flow executor commands expire)))
+    (sync/expire-keys! flow executor expire)))
 
 (defn flow-status!
   [state root]
@@ -135,6 +139,7 @@
         status {:state state
                 :flow @(:flow flow)
                 :tasks @(:tasks flow)
+                :commands @(:commands flow)
                 :data data}]
     (println "STATUS" status)
     status))
@@ -142,12 +147,16 @@
 (defn command-handler
   [state]
   (fn [request]
-    (let [{:keys [commands] :as body} (read-json (:body request))
+    (let [{:keys [root commands] :as body} (read-json (:body request))
+          root (keyword root)
           index (command/index-key commands)]
       (log/info "commands request" body)
-      (merge-commands! state index)
+      (merge-commands! state root index)
       (response
-       {:commands @(:commands state)}))))
+       {:commands
+        (deref
+         (:commands
+          (find-flow! state root)))}))))
 
 (defn merge-handler
   [state]
@@ -242,7 +251,7 @@
 
 (defn load-yaml
   [key config-path process-path]
-  (let [config (config/load-config config-path)
+  (let [config (config/read-path config-path)
         state (boot config)
         state (load-processes! state key process-path)]
     (trigger-flow! state key)))
