@@ -31,9 +31,9 @@
 
 (defn split-path
   [key]
-  (let [[bucket & parts] (string/split (name key) #":")
-        path (string/join ":" parts)]
-    [bucket path]))
+  (let [colon (.indexOf key ":")]
+    [(.substring key 0 colon)
+     (.substring key (inc colon))]))
 
 (deftype CloudStore [storage container]
   store/Store

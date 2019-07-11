@@ -48,7 +48,7 @@ def process(key, command, inputs, outputs, var={}):
     return out
 
 def launch_sisyphus(key):
-    os.system("../../script/launch-sisyphus.sh {}".format(key))
+    os.system("script/launch-sisyphus.sh {}".format(key))
 
 class Gaia(object):
     def __init__(self, config):
