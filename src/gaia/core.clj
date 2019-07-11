@@ -237,7 +237,7 @@
 (defn start
   [options]
   (let [path (or (:config options) "resources/config/gaia.clj")
-        config (config/load-config path)
+        config (config/read-path path)
         state (boot config)
         routes (polaris/build-routes (gaia-routes state))
         router (polaris/router routes)
