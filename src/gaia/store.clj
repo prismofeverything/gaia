@@ -33,6 +33,7 @@
 (defprotocol Store
   (present? [store key])
   (protocol [store])
+  (partition-data [store data])
   (existing-keys [store path]))
 
 (defprotocol Bus
@@ -51,6 +52,8 @@
           file (io/file path)]
       (.exists file)))
   (protocol [store] "file://")
+  (partition-data
+    [store data])
   (existing-keys
     [store path]
     (let [base (str root container "/")

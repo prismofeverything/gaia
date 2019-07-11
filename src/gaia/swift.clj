@@ -135,6 +135,7 @@
     [store key]
     (key-exists? swift key))
   (protocol [store] (str "swift://" (:container-name swift)))
+  (partition-data [store data])
   (existing-keys
     [store path]
     (all-keys swift)))

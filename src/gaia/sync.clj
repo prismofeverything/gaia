@@ -75,7 +75,7 @@
   [{:keys [store tasks] :as state} flow executor commands status]
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
-    (log/info "COMPLETE KEYS" (count (sort complete)))
+    (log/info "COMPLETE KEYS" (sort complete))
     (log/info "FRONT" front)
     (log/info "WAITING FOR" (flow/missing-data flow complete))
     (if (empty? front)
@@ -155,9 +155,20 @@
 
     (log/info "other executor event" event)))
 
+;; (defn find-existing
+;;   [store root status]
+;;   (let [existing (store/existing-paths store root)]
+;;     (assoc status :data existing)))
+
+(defn initial-key
+  [key]
+  [key {:state :complete}])
+
 (defn find-existing
-  [store root status]
-  (let [existing (store/existing-paths store root)]
+  [store flow status]
+  (let [data (flow/data-nodes flow)
+        [complete missing] (store/partition-data store data)
+        existing (into {} (map initial-key complete))]
     (assoc status :data existing)))
 
 (defn events-listener!
@@ -168,21 +179,41 @@
         handle (partial executor-events! state executor commands root)]
     (kafka/boot-consumer kafka handle)))
 
+(defn running-task?
+  [{:keys [state] :as task}]
+  (or
+   (= :initializing state)
+   (= :running state)))
+
+(defn executor-cancel!
+  [executor tasks outstanding]
+  (let [potential (select-keys tasks outstanding)
+        canceling (filter running-task? (vals potential))
+        expunge (mapv :name canceling)]
+    (log/info "canceling tasks" expunge)
+    (doseq [cancel canceling]
+      (executor/cancel! executor (:id cancel)))
+    (apply dissoc tasks expunge)))
+
+(defn cancel-tasks!
+  [tasks executor canceling]
+  (send tasks (partial executor-cancel! executor) canceling))
+
 (defn initialize-flow!
   [root store executor kafka commands]
   (let [flow (generate-sync kafka root [] store)
         listener (events-listener! flow executor commands root kafka)]
-    (swap! (:status flow) (partial find-existing store root))
     flow))
 
 (defn trigger-flow!
   [{:keys [flow store status tasks] :as state} root executor commands]
-  (send tasks (fn [prior now] now) {})
-  (swap!
-   status
-   (comp
-    (partial activate-front! state @flow executor @commands)
-    (partial find-existing store root))))
+  (when (not= :running (:state @status))
+    (let [now @flow]
+      (swap!
+       status
+       (comp
+        (partial activate-front! state now executor @commands)
+        (partial find-existing store now))))))
 
 (defn dissoc-seq
   [m s]
@@ -206,42 +237,32 @@
     (log/info "expired" down)
     down))
 
-(defn running-task?
-  [{:keys [state] :as task}]
-  (or
-   (= :initializing state)
-   (= :running state)))
-
-(defn executor-cancel!
-  [executor tasks outstanding]
-  (let [potential (select-keys tasks outstanding)
-        canceling (filter running-task? (vals potential))
-        expunge (mapv :name canceling)]
-    (log/info "canceling tasks" expunge)
-    (doseq [cancel canceling]
-      (executor/cancel! executor (:id cancel)))
-    (apply dissoc tasks expunge)))
-
-(defn cancel-tasks!
-  [tasks executor canceling]
-  (send tasks (partial executor-cancel! executor) canceling))
-
 (defn halt-flow!
-  [{:keys [root flow tasks status events] :as state} executor]
-  (let [halting (flow/process-map @flow)]
-    (swap! status assoc :state :halted)
+  [{:keys [root flow tasks status store events] :as state} executor]
+  (let [now @flow
+        halting (flow/process-map now)]
     (cancel-tasks! tasks executor (keys halting))
+    (swap!
+     status
+     (comp
+      (partial find-existing store now)
+      #(assoc % :state :halted)))
     (executor/declare-event!
      events
      {:event "flow-halted"
       :root root})))
 
 (defn merge-processes!
-  [{:keys [flow status tasks] :as state} executor commands processes]
+  [{:keys [flow status tasks store] :as state} executor commands processes]
   (let [transform (command/transform-processes @commands processes)]
     (cancel-tasks! tasks executor (keys transform))
     (swap! flow #(flow/merge-processes % (vals transform)))
-    (expire-keys! state executor commands (keys transform))))
+    (let [now @flow]
+      (swap!
+       status
+       (comp
+        (partial activate-front! state now executor @commands)
+        (partial find-existing store now))))))
 
 (defn expire-commands!
   [{:keys [flow] :as state} executor commands expiring]

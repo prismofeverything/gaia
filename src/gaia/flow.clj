@@ -56,26 +56,30 @@
 (defn process-nodes
   [flow]
   (let [nodes (graph/nodes flow)]
-    (filter
-     #(graph/attr flow % :_process)
-     nodes)))
+    (map
+     unfix
+     (filter
+      #(graph/attr flow % :_process)
+      nodes))))
 
 (defn process-map
   ([flow]
-   (process-map flow (map unfix (process-nodes flow))))
+   (process-map flow (process-nodes flow)))
   ([flow nodes]
    (node-map "process" flow nodes)))
 
 (defn data-nodes
   [flow]
   (let [nodes (graph/nodes flow)]
-    (remove
-     #(graph/attr flow % :_process)
-     nodes)))
+    (map
+     unfix
+     (remove
+      #(graph/attr flow % :_process)
+      nodes))))
 
 (defn data-map
   ([flow]
-   (data-map flow (map unfix (data-nodes flow))))
+   (data-map flow (data-nodes flow)))
   ([flow nodes]
    (node-map "data" flow nodes)))
 
@@ -91,7 +95,7 @@
 
 (defn missing-data
   [flow data]
-  (let [processes (process-nodes flow)
+  (let [processes (map-prefix "process" (process-nodes flow))
         full (map (partial full-node flow) processes)
         prefix-data (set (map-prefix "data" data))
         incomplete
@@ -106,7 +110,7 @@
 
 (defn imminent-front
   [flow data]
-  (let [processes (process-nodes flow)
+  (let [processes (map-prefix "process" (process-nodes flow))
         prefix-data (set (map-prefix "data" data))]
     (map
      unfix
