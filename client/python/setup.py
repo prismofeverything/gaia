@@ -8,12 +8,13 @@ with open("README.md", 'r') as readme:
 
 setup(
 	name='gaia',
-	version='0.0.1',
+	version='0.0.2',
 	packages=['gaia'],
 	author='Ryan Spangler',
 	author_email='ryan.spangler@gmail.com',
 	url='https://github.com/prismofeverything/gaia',
 	license='MIT',
+	scripts=['script/launch-sisyphus.sh'],
 	install_requires=['requests', 'pyyaml', 'confluent-kafka'],
 	long_description=long_description,
 	long_description_content_type='text/markdown')
