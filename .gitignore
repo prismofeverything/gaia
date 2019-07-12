@@ -9,7 +9,8 @@ genes.json
 /resources/config/home.clj
 /resources/config/ohsu-swift.clj
 .DS_Store
-.idea/
+/.idea/
+/*.iml
 .lein-failures
 .lein-repl-history
 .nrepl-port
