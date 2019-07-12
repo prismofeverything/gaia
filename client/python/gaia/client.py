@@ -48,7 +48,10 @@ def process(key, command, inputs, outputs, var={}):
     return out
 
 def launch_sisyphus(key):
-    os.system("script/launch-sisyphus.sh {}".format(key))
+    command = "script/launch-sisyphus.sh"
+    if not os.path.exists(command):
+        command = "launch-sisyphus.sh"
+    os.system("{} {}".format(command, key))
 
 class Gaia(object):
     def __init__(self, config):
@@ -65,8 +68,9 @@ class Gaia(object):
         data=json.dumps(data)
         return requests.post(url, data=data).json()
 
-    def command(self, commands=[]):
+    def command(self, root, commands=[]):
         return self.post('command', {
+            'root': root,
             'commands': commands})
 
     def merge(self, root, processes):

@@ -1,11 +1,11 @@
 (ns gaia.config
   (:require
+   [clojure.edn :as edn]
    [clojure.walk :as walk]
    [clojure.string :as string]
    [taoensso.timbre :as log]
    [yaml.core :as yaml]
    [protograph.template :as template]
-   [ophion.config :as config]
    [gaia.command :as command]
    [gaia.store :as store]
    [gaia.swift :as swift]
@@ -17,6 +17,11 @@
    :commands
    :processes
    :agents])
+
+(defn read-path
+  [path]
+  (edn/read-string
+   (slurp path)))
 
 (defn parse-yaml
   [path]
@@ -50,7 +55,7 @@
 
 (defn load-config
   [path]
-  (let [config (config/read-path path)
+  (let [config (read-path path)
         commands (load-commands (get-in config [:flow :path]))]
     (assoc config :commands commands)))
 

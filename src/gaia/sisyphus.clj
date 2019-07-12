@@ -22,7 +22,7 @@
 (defn process->task
   [process command]
   {:id (or (:id process) (generate-id))
-   :space (:space process "gaia")
+   :root (:root process "gaia")
    :image (:image command)
    :commands (:commands command)
    :inputs (find-xputs process command :inputs)
