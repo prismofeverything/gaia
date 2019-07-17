@@ -23,6 +23,7 @@
 (defn process->task
   [process command]
   {:id (or (:id process) (generate-id))
+   :name (:key process)
    :root (:root process "gaia")
    :image (:image command)
    :commands (:commands command)
