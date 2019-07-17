@@ -180,7 +180,7 @@
       "data-complete"
       (data-complete! state executor event)
 
-      (log/warn! "UNKNOWN EVENT" (:event event)))))
+      (log/info! "UNKNOWN EVENT" (:event event)))))
 
 (defn initial-key
   [key]

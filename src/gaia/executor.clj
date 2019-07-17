@@ -10,7 +10,7 @@
 
 (defn declare-event!
   [producer message]
-  (log/info! "declare event" message)
+  (log/warn! "declare event" message) ; notice! would be more fitting but Logs Viewer shows it like info!
   (kafka/send!
    producer
    "gaia-events"
