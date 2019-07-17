@@ -117,17 +117,14 @@
   (first
    (filter
     (fn [[key task]]
-      (println "FINDING" task id)
       (= id (:id task)))
     tasks)))
 
 (defn process-state!
   [{:keys [tasks]} event state]
-  (println "PROCESS STATE" event state @tasks)
   (send
    tasks
    (fn [all task]
-     (println "LOOKING FOR" task "IN" all)
      (if-let [found (find-task all (:id task))]
        (do
          (println "FOUND" found)
