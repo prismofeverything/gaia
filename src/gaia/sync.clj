@@ -2,7 +2,6 @@
   (:require
    [clojure.set :as set]
    [clojure.string :as string]
-   [taoensso.timbre :as log]
    [cheshire.core :as json]
    [protograph.template :as template]
    [sisyphus.kafka :as kafka]
@@ -25,11 +24,21 @@
        :data {}})
      :tasks (agent {})}))
 
+(defn find-running
+  [tasks]
+  (into
+   {}
+   (filter
+    (fn [[key task]]
+      (= (:state task) :running))
+    tasks)))
+
 (defn send-tasks!
   [root executor store commands prior tasks]
-  (log/info "PRIOR" prior)
-  (log/info "TASKS" tasks)
-  (let [relevant (remove (comp (partial get prior) first) tasks)
+  (println "PRIOR" prior)
+  (println "TASKS" tasks)
+  (let [running (find-running prior)
+        relevant (remove (comp (partial get running) first) tasks)
         submit! (partial executor/submit! executor commands)
         triggered (into
                    {}
@@ -39,6 +48,9 @@
                        (submit!
                         (assoc task :root root))])
                     relevant))]
+    (println "RUNNING" (map first running))
+    (println "RELEVANT" (map first relevant))
+    (println "TRIGGERED" (map first triggered))
     (merge triggered prior)))
 
 (defn reset-tasks!
@@ -78,24 +90,17 @@
   [{:keys [root store tasks] :as state} flow executor commands status]
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
-    (log/info "COMPLETE KEYS" (sort complete))
-    (log/info "FRONT" front)
-    (log/info "WAITING FOR" (flow/missing-data flow complete))
+    (println "COMPLETE KEYS" (sort complete))
+    (println "FRONT" front)
+    (println "WAITING FOR" (flow/missing-data flow complete))
     (if (empty? front)
       (let [missing (missing-data flow (:data status))]
-        (log/info "empty front - missing" missing)
-        (if (empty? missing)
-          (assoc status :state :complete)
-          (assoc status :state :incomplete)))
-      (let [active (flow/process-map flow front)
-            current @tasks
-            launching (apply dissoc active (keys current))
-            computing (apply merge (map compute-outputs (vals launching)))]
-        (log/info "ACTIVE" active)
-        (log/info "LAUNCHING" launching)
+        (println "empty front - missing" missing)
+        (assoc status :state (if (empty? missing) :complete :incomplete)))
+      (let [launching (flow/process-map flow front)]
+        (println "LAUNCHING" launching)
         (send tasks (partial send-tasks! root executor store commands) launching)
         (-> status
-            (update :data merge computing)
             (assoc :state :running))))))
 
 (defn complete-key
@@ -107,14 +112,29 @@
     {:url (:key event)
      :state :complete})))
 
+(defn find-task
+  [tasks id]
+  (first
+   (filter
+    (fn [[key task]]
+      (println "FINDING" task id)
+      (= id (:id task)))
+    tasks)))
+
 (defn process-state!
-  [{:keys [tasks]} event]
+  [{:keys [tasks]} event state]
+  (println "PROCESS STATE" event state @tasks)
   (send
    tasks
-   (fn [ts {:keys [id state]}]
-     (if-let [found (first (filter #(= id (:id (last %))) ts))]
-       (let [[key task] found]
-         (assoc-in ts [key :state] (keyword (string/lower-case state))))))
+   (fn [all task]
+     (println "LOOKING FOR" task "IN" all)
+     (if-let [found (find-task all (:id task))]
+       (do
+         (println "FOUND" found)
+         (-> all
+             (assoc-in [(first found) :state] state)
+             (assoc-in [(first found) :event] event)))
+       all))
    event))
 
 (defn data-complete!
@@ -141,33 +161,32 @@
          {:event "flow-incomplete"
           :root root})
 
-        (log/info "FLOW CONTINUES" root)))))
+        (println "FLOW CONTINUES" root)))))
 
 (defn executor-events!
   [{:keys [status root] :as state}
    executor topic event]
-  (log/info "GAIA EVENT" event)
-  (condp = (:event event)
+  (println "EXECUTOR EVENT" event)
+  (when (= (:root event) (name root))
+    (condp = (:event event)
 
-    "process-state"
-    (process-state! state event)
+      "process-complete"
+      (process-state! state event :complete)
 
-    "data-complete"
-    (when (= (:root event) (name root))
-      (data-complete! state executor event))
+      "process-error"
+      (process-state! state event :error)
 
-    (log/info "other executor event" event)))
+      "task-error"
+      (process-state! state event :error)
+
+      "data-complete"
+      (data-complete! state executor event)
+
+      (println "UNKNOWN EVENT" (:event event)))))
 
 (defn initial-key
   [key]
   [key {:state :complete}])
-
-(defn find-existing
-  [store flow status]
-  (let [data (flow/data-nodes flow)
-        [complete missing] (store/partition-data store data)
-        existing (into {} (map initial-key complete))]
-    (assoc status :data existing)))
 
 (defn events-listener!
   [state executor kafka]
@@ -188,7 +207,7 @@
   (let [potential (select-keys tasks outstanding)
         canceling (filter running-task? (vals potential))
         expunge (mapv :name canceling)]
-    (log/info "canceling tasks" expunge)
+    (println "canceling tasks" expunge)
     (doseq [cancel canceling]
       (executor/cancel! executor (:id cancel)))
     (apply dissoc tasks expunge)))
@@ -203,8 +222,15 @@
         listener (events-listener! flow executor kafka)]
     flow))
 
+(defn find-existing
+  [store flow status]
+  (let [data (flow/data-nodes flow)
+        [complete missing] (store/partition-data store data)
+        existing (into {} (map initial-key complete))]
+    (assoc status :data existing)))
+
 (defn trigger-flow!
-  [{:keys [root flow commands store status tasks] :as state} executor]
+  [{:keys [root flow commands store status] :as state} executor]
   (when (not= :running (:state @status))
     (let [now @flow]
       (swap!
@@ -232,7 +258,7 @@
      (comp
       (partial activate-front! state now executor @commands)
       (partial expunge-keys data)))
-    (log/info "expired" down)
+    (println "expired" down)
     down))
 
 (defn halt-flow!
@@ -265,8 +291,8 @@
 (defn expire-commands!
   [{:keys [flow commands] :as state} executor expiring]
   (let [processes (template/map-cat (partial flow/command-processes @flow) expiring)]
-    (log/info "expiring processes" processes)
-    (log/info "from commands" (into [] expiring))
+    (println "expiring processes" processes)
+    (println "from commands" (into [] expiring))
     (expire-keys! state executor processes)))
 
 (defn merge-commands!

@@ -6,7 +6,8 @@
 
 (defn generate-id
   []
-  (java.util.UUID/randomUUID))
+  (.toString
+   (java.util.UUID/randomUUID)))
 
 (defn find-xput
   [process command x key]
@@ -33,7 +34,7 @@
   (let [command (get commands (keyword (:command process)))
         task (process->task process command)]
     (rabbit/publish! rabbit task)
-    task))
+    (assoc task :state :running)))
 
 (defn cancel-task!
   [{:keys [kafka]} id]

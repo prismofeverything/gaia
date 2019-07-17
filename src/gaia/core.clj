@@ -136,10 +136,12 @@
   [state root]
   (let [flow (find-flow! state root)
         {:keys [state data]} @(:status flow)
+        complete (sync/complete-keys data)
         status {:state state
                 :flow @(:flow flow)
                 :tasks @(:tasks flow)
                 :commands @(:commands flow)
+                :waiting (flow/missing-data @(:flow flow) complete)
                 :data data}]
     (println "STATUS" status)
     status))

@@ -26,6 +26,8 @@
         - "-u"
         - "runscripts/manual/runSim.py"
         - "sim"
+        - "--length_sec"
+        - "11"
 
 - key: analysis
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
