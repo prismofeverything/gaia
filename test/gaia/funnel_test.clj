@@ -1,12 +1,9 @@
 (ns gaia.funnel-test
   (:require
    [clojure.test :refer :all]
-   [taoensso.timbre :as log]
    [gaia.command :as command]
    [gaia.store :as store]
    [gaia.funnel :as funnel]))
-
-(log/set-level! :trace)
 
 (def commands
   [{:key "echo"

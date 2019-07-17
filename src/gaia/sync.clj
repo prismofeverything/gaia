@@ -5,6 +5,7 @@
    [cheshire.core :as json]
    [protograph.template :as template]
    [sisyphus.kafka :as kafka]
+   [sisyphus.log :as log]
    [gaia.flow :as flow]
    [gaia.command :as command]
    [gaia.store :as store]
@@ -35,8 +36,8 @@
 
 (defn send-tasks!
   [root executor store commands prior tasks]
-  (println "PRIOR" prior)
-  (println "TASKS" tasks)
+  (log/debug! "PRIOR" prior)
+  (log/debug! "TASKS" tasks)
   (let [running (find-running prior)
         relevant (remove (comp (partial get running) first) tasks)
         submit! (partial executor/submit! executor commands)
@@ -48,9 +49,9 @@
                        (submit!
                         (assoc task :root root))])
                     relevant))]
-    (println "RUNNING" (map first running))
-    (println "RELEVANT" (map first relevant))
-    (println "TRIGGERED" (map first triggered))
+    (log/debug! "RUNNING" (map first running))
+    (log/debug! "RELEVANT" (map first relevant))
+    (log/debug! "TRIGGERED" (map first triggered))
     (merge triggered prior)))
 
 (defn reset-tasks!
@@ -90,15 +91,15 @@
   [{:keys [root store tasks] :as state} flow executor commands status]
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
-    (println "COMPLETE KEYS" (sort complete))
-    (println "FRONT" front)
-    (println "WAITING FOR" (flow/missing-data flow complete))
+    (log/debug! "COMPLETE KEYS" (sort complete))
+    (log/debug! "FRONT" front)
+    (log/debug! "WAITING FOR" (flow/missing-data flow complete))
     (if (empty? front)
       (let [missing (missing-data flow (:data status))]
-        (println "empty front - missing" missing)
+        (log/debug! "empty front - missing" missing)
         (assoc status :state (if (empty? missing) :complete :incomplete)))
       (let [launching (flow/process-map flow front)]
-        (println "LAUNCHING" launching)
+        (log/debug! "LAUNCHING" launching)
         (send tasks (partial send-tasks! root executor store commands) launching)
         (-> status
             (assoc :state :running))))))
@@ -127,7 +128,7 @@
    (fn [all task]
      (if-let [found (find-task all (:id task))]
        (do
-         (println "FOUND" found)
+         (log/debug! "FOUND" found)
          (-> all
              (assoc-in [(first found) :state] state)
              (assoc-in [(first found) :event] event)))
@@ -158,12 +159,12 @@
          {:event "flow-incomplete"
           :root root})
 
-        (println "FLOW CONTINUES" root)))))
+        (log/debug! "FLOW CONTINUES" root)))))
 
 (defn executor-events!
   [{:keys [status root] :as state}
    executor topic event]
-  (println "EXECUTOR EVENT" event)
+  (log/debug! "EXECUTOR EVENT" event)
   (when (= (:root event) (name root))
     (condp = (:event event)
 
@@ -179,7 +180,7 @@
       "data-complete"
       (data-complete! state executor event)
 
-      (println "UNKNOWN EVENT" (:event event)))))
+      (log/warn! "UNKNOWN EVENT" (:event event)))))
 
 (defn initial-key
   [key]
@@ -204,7 +205,7 @@
   (let [potential (select-keys tasks outstanding)
         canceling (filter running-task? (vals potential))
         expunge (mapv :name canceling)]
-    (println "canceling tasks" expunge)
+    (log/info! "canceling tasks" expunge)
     (doseq [cancel canceling]
       (executor/cancel! executor (:id cancel)))
     (apply dissoc tasks expunge)))
@@ -255,7 +256,7 @@
      (comp
       (partial activate-front! state now executor @commands)
       (partial expunge-keys data)))
-    (println "expired" down)
+    (log/debug! "expired" down)
     down))
 
 (defn halt-flow!
@@ -288,8 +289,7 @@
 (defn expire-commands!
   [{:keys [flow commands] :as state} executor expiring]
   (let [processes (template/map-cat (partial flow/command-processes @flow) expiring)]
-    (println "expiring processes" processes)
-    (println "from commands" (into [] expiring))
+    (log/debug! "expiring processes" processes "from commands" (into [] expiring))
     (expire-keys! state executor processes)))
 
 (defn merge-commands!
@@ -297,6 +297,5 @@
   (try
     (expire-commands! state executor (keys merging))
     (catch Exception e
-      (println e)
-      (.printStackTrace e)))
+      (log/exception! e "merge-commands")))
   (swap! commands merge merging))

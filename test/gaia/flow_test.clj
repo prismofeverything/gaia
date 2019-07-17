@@ -1,10 +1,8 @@
 (ns gaia.flow-test
   (:require
    [clojure.test :refer :all]
-   [taoensso.timbre :as log]
+   [sisyphus.log :as log]
    [gaia.flow :as flow]))
-
-(log/set-level! :trace)
 
 (def line-commands
   {:command
@@ -82,10 +80,10 @@
 ;;     (let [{:keys [data]} (flow/run-flow line-flow starting-data)
 ;;           next (flow/update-data line-flow data :three 11)
 ;;           alternate (flow/run-flow line-flow next)]
-;;       (log/info "flow" line-flow)
-;;       (log/info "data" data)
-;;       (log/info "next" next)
-;;       (log/info "alternate" (:data alternate))
+;;       (log/info! "flow" line-flow)
+;;       (log/info! "data" data)
+;;       (log/info! "next" next)
+;;       (log/info! "alternate" (:data alternate))
 ;;       (is (= (:twenty-six data) 26.0))
 ;;       (is (= (:thirteen data) 13.0))
 ;;       (is (> (get-in alternate [:data :thirteen]) 25))

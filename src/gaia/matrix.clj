@@ -1,8 +1,7 @@
 (ns gaia.matrix
   (:require
    [clojure.string :as string]
-   [clojure.java.io :as io]
-   [taoensso.timbre :as log]))
+   [clojure.java.io :as io]))
 
 (defn load-triples
   [path]

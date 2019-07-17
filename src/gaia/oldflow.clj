@@ -1,7 +1,7 @@
 (ns gaia.oldflow
   (:require
    [clojure.set :as set]
-   [taoensso.timbre :as log]))
+   [sisyphus.log :as log]))
 
 (defn in? 
   [coll el]
@@ -100,8 +100,8 @@
   [flow data]
   (let [complete (complete-keys data)
         space (flow-space flow)]
-    (log/info "complete" complete)
-    (log/info "space" space)
+    (log/info! "complete" complete)
+    (log/info! "space" space)
     (set/difference space complete)))
 
 (defn flow-complete?
@@ -128,8 +128,8 @@
   [flow data]
   (let [missing (missing-data flow data)
         able (able-processes flow data)]
-    (log/info "missing" missing)
-    (log/info "able" (mapv identity able))
+    (log/info! "missing" missing)
+    (log/info! "able" (mapv identity able))
     (filter
      (partial process-produces? flow missing)
      able)))
@@ -154,25 +154,20 @@
 
 (defn run-process
   [flow data process]
-  (log/trace "run" process)
+  (log/debug! "run" process)
   (let [{:keys [inputs outputs command]} (get-in flow [:flow process :node])
         run (get-in flow [:command command])
         args (pull-data data inputs)
         result (run args)
         out (stuff-data result outputs)]
-    (log/trace "command" command)
-    (log/trace "inputs" inputs)
-    (log/trace "args" args)
-    (log/trace "outputs" outputs)
-    (log/trace "result" result)
-    (log/trace "out" out)
+    (log/debug! "ran" {:command command :inputs inputs :args args :outputs outputs :result result :out out})
     out))
 
 (defn step-flow
   [flow data]
   (let [candidates (find-candidates flow data)
         outcome (mapv (partial run-process flow data) candidates)]
-    (log/trace "candidates" (mapv identity candidates))
+    (log/debug! "candidates" (mapv identity candidates))
     (reduce merge data outcome)))
 
 (defn run-flow
@@ -198,14 +193,14 @@
 
 (defn find-descendants
   [flow source]
-  (log/info "FLOW" flow)
-  (log/info "SOURCE" source)
+  (log/info! "FLOW" flow)
+  (log/info! "SOURCE" source)
   (let [processes (select-keys (:process flow) source)
         from (keys processes)
         to (apply set/union (map :to (vals processes)))
         data (select-keys (:data flow) source)
         down (concat to (keys data))]
-    (log/info from to down)
+    (log/info! "from to down" from to down)
     (data-descendants flow from down)))
 
 (defn command-processes

@@ -3,9 +3,9 @@
    [clojure.edn :as edn]
    [clojure.walk :as walk]
    [clojure.string :as string]
-   [taoensso.timbre :as log]
    [yaml.core :as yaml]
    [protograph.template :as template]
+   [sisyphus.log :as log]
    [gaia.command :as command]
    [gaia.store :as store]
    [gaia.swift :as swift]
@@ -36,7 +36,9 @@
           (fn [key]
             (try
               [key (parse-yaml (str path "." (name key) ".yaml"))]
-              (catch Exception e (do (log/info "bad yaml" path key) [key {}]))))
+              (catch Exception e
+                (do (log/exception! e "bad yaml" path key)
+                  [key {}]))))
           config-keys))
         config (update config :commands command/index-key)
         config (update config :processes (partial command/transform-processes (:commands config)))]

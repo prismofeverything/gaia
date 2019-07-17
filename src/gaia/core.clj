@@ -3,7 +3,6 @@
    [clojure.walk :as walk]
    [clojure.string :as string]
    [clojure.tools.cli :as cli]
-   [taoensso.timbre :as log]
    [aleph.http :as http]
    [ring.middleware.resource :as resource]
    [ring.middleware.params :as params]
@@ -12,6 +11,7 @@
    [ubergraph.core :as graph]
    [polaris.core :as polaris]
    [sisyphus.kafka :as kafka]
+   [sisyphus.log :as log]
    [sisyphus.rabbit :as rabbit]
    [gaia.config :as config]
    [gaia.store :as store]
@@ -97,7 +97,7 @@
 ;; (defn merge-commands!
 ;;   [{:keys [flows commands executor] :as state} merging]
 ;;   (let [prior (map name (keys (select-keys @commands (keys merging))))]
-;;     (log/info "prior commands" (into [] prior))
+;;     (log/info! "prior commands" (into [] prior))
 ;;     (doseq [[key flow] @flows]
 ;;       (sync/expire-commands! flow executor commands prior))
 ;;     (swap! commands merge merging)))
@@ -127,9 +127,9 @@
 
 (defn expire-keys!
   [{:keys [executor] :as state} root expire]
-  (log/info "expiring keys" root expire)
+  (log/info! "expiring keys" root expire)
   (let [flow (find-flow! state root)]
-    (log/info "expiring flow" flow)
+    (log/info! "expiring flow" flow)
     (sync/expire-keys! flow executor expire)))
 
 (defn flow-status!
@@ -152,7 +152,7 @@
     (let [{:keys [root commands] :as body} (read-json (:body request))
           root (keyword root)
           index (command/index-key commands)]
-      (log/info "commands request" body)
+      (log/info! "commands request" body)
       (merge-commands! state root index)
       (response
        {:commands
@@ -165,7 +165,7 @@
   (fn [request]
     (let [{:keys [root processes] :as body} (read-json (:body request))
           root (keyword root)]
-      (log/info "merge request" body)
+      (log/info! "merge request" body)
       (merge-processes! state root processes)
       (response
        {:processes {root (map :key processes)}}))))
@@ -175,7 +175,7 @@
   (fn [request]
     (let [{:keys [root] :as body} (read-json (:body request))
           root (keyword root)]
-      (log/info "trigger request" body)
+      (log/info! "trigger request" body)
       (trigger-flow! state root)
       (response
        {:trigger root}))))
@@ -185,7 +185,7 @@
   (fn [request]
     (let [{:keys [root] :as body} (read-json (:body request))
           root (keyword root)]
-      (log/info "halt request" body)
+      (log/info! "halt request" body)
       (halt-flow! state root)
       (response
        {:halt root}))))
@@ -195,7 +195,7 @@
   (fn [request]
     (let [{:keys [root] :as body} (read-json (:body request))
           root (keyword root)]
-      (log/info "status request" body)
+      (log/info! "status request" body)
       (response
        {:root root
         :status
@@ -206,7 +206,7 @@
   (fn [request]
     (let [{:keys [root expire] :as body} (read-json (:body request))
           root (keyword root)]
-      (log/info "expire request" body)
+      (log/info! "expire request" body)
       (response
        {:expire
         (expire-keys! state root expire)}))))

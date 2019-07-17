@@ -4,7 +4,7 @@
    [clojure.walk :as walk]
    [clojure.string :as string]
    [clojure.math.combinatorics :as combinatorics]
-   [taoensso.timbre :as log]
+   [sisyphus.log :as log]
    [protograph.template :as template]))
 
 (defn uuid
@@ -21,7 +21,7 @@
 
 (defn validate-apply-composite!
   [{:keys [inputs outputs]} process]
-  ;; (log/info "VALIDATE" (pp process))
+  ;; (log/debug! "VALIDATE" (pp process))
   (let [pin (:inputs process)
         pout (:outputs process)
         pvars (:vars process)]

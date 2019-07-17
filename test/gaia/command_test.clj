@@ -1,12 +1,10 @@
 (ns gaia.command-test
   (:require
    [clojure.test :refer :all]
-   [taoensso.timbre :as log]
+   [sisyphus.log :as log]
    [gaia.config :as config]
    [gaia.flow :as flow]
    [gaia.command :as command]))
-
-(log/set-level! :trace)
 
 (def composite-data
   (config/load-flow-config "resources/test/test"))
@@ -17,8 +15,8 @@
 
 (deftest inner-test
   (testing "inner composite process generation"
-    (log/info "commands" (pp (:commands composite-data)))
-    (log/info "processes" (pp (:processes composite-data)))
+    (log/info! "commands" (pp (:commands composite-data)))
+    (log/info! "processes" (pp (:processes composite-data)))
     (let [inner (get-in composite-data [:processes :inner-demo-invoke-TCGA-BRCA:wc-step])]
       (is inner)
       (is (= #{:YELLOW :OUTER} (set (keys (:inputs inner))))))))

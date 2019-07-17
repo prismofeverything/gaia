@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as string]
    [clojure.java.io :as io]
-   [taoensso.timbre :as log]
+   [sisyphus.log :as log]
    [gaia.store :as store])
   (:import
    [org.javaswift.joss.client.factory AccountFactory]))
@@ -96,11 +96,11 @@
         file (io/file path)]
     (store/ensure-path path)
     (if (.exists file)
-      (log/info "already downloaded" path)
+      (log/info! "already downloaded" path)
       (try
         (.downloadObject object file)
         (catch Exception e
-          (log/info key "failed to download")
+          (log/info! "failed to download" key)
           (.getMessage e))))))
 
 (defn get-path
@@ -110,7 +110,7 @@
         matches (filter (partial re-find pattern) all)
         matches (sort-by count > matches)]
     (doseq [match matches]
-      (log/info "downloading" match)
+      (log/info! "downloading" match)
       (get-key swift match (str path "/" match)))
     matches))
 

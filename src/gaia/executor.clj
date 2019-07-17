@@ -1,8 +1,8 @@
 (ns gaia.executor
   (:require
-   [taoensso.timbre :as log]
    [cheshire.core :as json]
-   [sisyphus.kafka :as kafka]))
+   [sisyphus.kafka :as kafka]
+   [sisyphus.log :as log]))
 
 (defprotocol Executor
   (submit! [executor commands process])
@@ -10,7 +10,7 @@
 
 (defn declare-event!
   [producer message]
-  (log/info "declare event" message)
+  (log/info! "declare event" message)
   (kafka/send!
    producer
    "gaia-events"
