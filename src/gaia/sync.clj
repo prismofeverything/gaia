@@ -196,12 +196,6 @@
         handle (partial executor-events! state executor)]
     (kafka/boot-consumer kafka handle)))
 
-(defn running-task?
-  [{:keys [state] :as task}]
-  (or
-   (= :initializing state)
-   (= :running state)))
-
 (defn executor-cancel!
   [executor tasks outstanding]
   (let [potential (select-keys tasks outstanding)
