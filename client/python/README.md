@@ -2,13 +2,11 @@
 
 ## running
 
-To connect to a running Gaia instance, find the host and do the following:
+To connect to a running Gaia instance, find the host (or open an ssh tunnel to it) and do the following:
 
 ```
 import gaia
-config = {
-    'gaia_host': '10.138.0.21:24442',
-    'kafka_host': '10.138.0.2:9092'}
+config = {'gaia_host': 'localhost:24442'}
 flow = gaia.Gaia(config)
 ```
 
@@ -33,25 +31,19 @@ flow.merge('wcm', wcm)
 You will also need to launch some sisyphus workers. To do that:
 
 ```
-flow.launch('worker-a')
+flow.launch(['sisyphus-0', 'sisyphus-1'])
 ```
 
 Launch more if you want : ) Give each a unique key. They will deallocate after 5 minutes of inactivity.
-
-Once your workflow is running, you can listen to the logs as they appear:
-
-```
-flow.listen()
-```
 
 ### command
 
 Commands are the base level operations that can be run, and generally map on to command line programs invoked from a given docker container. Once defined, a command can be invoked any number of times with a new set of vars, inputs and outputs.
 
-If you call this method with an empty array, it will return all commands currently registered in the system.
+If you call this method with an empty array or no array, it will return all commands currently registered for the named workflow.
 
 ```
-flow.command([])
+flow.command('biostream')
 # [{'key': 'ls', 'image': 'ubuntu', ...}, ...]
 ```
 
