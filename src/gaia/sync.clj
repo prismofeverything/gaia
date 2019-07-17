@@ -24,13 +24,16 @@
        :data {}})
      :tasks (agent {})}))
 
+(def running-states
+  #{:running :error})
+
 (defn find-running
   [tasks]
   (into
    {}
    (filter
     (fn [[key task]]
-      (= (:state task) :running))
+      (running-states (:state task)))
     tasks)))
 
 (defn send-tasks!
@@ -174,7 +177,7 @@
       (process-state! state event :error)
 
       "task-error"
-      (process-state! state event :error)
+      (process-state! state event :exception)
 
       "data-complete"
       (data-complete! state executor event)
@@ -202,10 +205,10 @@
 (defn executor-cancel!
   [executor tasks outstanding]
   (let [potential (select-keys tasks outstanding)
-        canceling (filter running-task? (vals potential))
-        expunge (mapv :name canceling)]
-    (println "canceling tasks" expunge)
-    (doseq [cancel canceling]
+        canceling (find-running potential)
+        expunge (keys canceling)]
+    (println "CANCELING" expunge)
+    (doseq [[key cancel] canceling]
       (executor/cancel! executor (:id cancel)))
     (apply dissoc tasks expunge)))
 
