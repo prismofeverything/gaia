@@ -26,9 +26,9 @@
         pout (:outputs step)
         pvars (:vars step)]
     (if-not (empty? (difference (map keyword inputs) (keys pin)))
-      (throw (Exception. (str (:key step) " - all inputs must be specified: " inputs (keys pin))))
+      (throw (Exception. (str (:name step) " - all inputs must be specified: " inputs (keys pin))))
     (if-not (empty? (difference (map keyword outputs) (keys pout)))
-      (throw (Exception. (str (:key step) " - all outputs must be specified: " outputs (keys pout))))))))
+      (throw (Exception. (str (:name step) " - all outputs must be specified: " outputs (keys pout))))))))
 
 (defn substitute-values
   [template values]
@@ -54,17 +54,24 @@
    (fn [all [key template]]
      (if (get-in step [:outputs (keyword template)])
        all
-       (assoc all (keyword template) (generate-binding (:key step) (:key step) (name key) template))))
+       (assoc
+        all
+        (keyword template)
+        (generate-binding
+         (:name step)
+         (:name step)
+         (name key)
+         template))))
    outputs (:outputs step)))
 
 (declare apply-composite)
 
 (defn apply-step
-  [commands step vars inputs outputs {:keys [key command] :as step}]
+  [commands step vars inputs outputs {:keys [name command] :as step}]
   (let [ovars (template/evaluate-map (:vars step) vars)
         oin (substitute-values (:inputs step) inputs)
         oout (substitute-values (:outputs step) outputs)
-        inner {:key (str (:key step) ":" key)
+        inner {:name (str (:name step) ":" name)
                :command command
                :vars ovars
                :inputs oin
@@ -119,27 +126,27 @@
   (string/replace s #"[^a-zA-Z0-9\-]" ""))
 
 (defn template-vars
-  [{:keys [key vars inputs outputs] :as step}]
+  [{:keys [name vars inputs outputs] :as step}]
   (let [arrays (filter-map (fn [k v] (coll? v)) vars)
         series (cartesian-map arrays)]
     (map
      (fn [arrayed]
        (let [order (sort-by first arrayed)
              values (map (comp clean-string last) order)
-             unique (string/join "-" (conj values key))
+             unique (string/join "-" (conj values name))
              env (walk/stringify-keys (merge vars arrayed))]
          (merge
           step
-          {:key unique
+          {:name unique
            :vars env
            :inputs (template/evaluate-map inputs env)
            :outputs (template/evaluate-map outputs env)})))
      series)))
 
 (defn index-key
-  [s]
+  [key s]
   (index-seq
-   (comp keyword :key)
+   (comp keyword key)
    s))
 
 (defn fill-templates
@@ -150,6 +157,7 @@
   [commands steps]
   (let [templates (fill-templates steps)]
     (index-key
+     :name
      (template/map-cat
       (fn [step]
         (let [command (get commands (keyword (:command step)))]

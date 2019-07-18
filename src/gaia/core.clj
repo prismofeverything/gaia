@@ -142,7 +142,7 @@
   (fn [request]
     (let [{:keys [workflow commands] :as body} (read-json (:body request))
           workflow (keyword workflow)
-          index (command/index-key commands)]
+          index (command/index-key :name commands)]
       (log/info! "commands request" body)
       (merge-commands! state workflow index)
       (response
@@ -159,7 +159,7 @@
       (log/info! "merge request" body)
       (merge-steps! state workflow steps)
       (response
-       {:steps {workflow (map :key steps)}}))))
+       {:steps {workflow (map :name steps)}}))))
 
 (defn run-handler
   [state]

@@ -40,7 +40,7 @@
                 (do (log/exception! e "bad yaml" path key)
                   [key {}]))))
           config-keys))
-        config (update config :commands command/index-key)
+        config (update config :commands (partial command/index-key :name))
         config (update config :steps (partial command/transform-steps (:commands config)))]
     config))
 
@@ -52,6 +52,7 @@
 (defn load-commands
   [path]
   (command/index-key
+   :name
    (parse-yaml
     (str path ".commands.yaml"))))
 
