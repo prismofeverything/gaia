@@ -61,8 +61,7 @@ The python client for Gaia lives at `client/python/gaia.py`. To connect to a run
 ```
 from gaia.client import Gaia
 config = {
-    'gaia_host': '10.138.0.21:24442',
-    'kafka_host': '10.138.0.2:9092'}
+    'gaia_host': '10.138.0.21:24442'}
 flow = Gaia(config)
 ```
 
