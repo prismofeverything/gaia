@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 import os
 import sys
 import json
@@ -26,7 +28,7 @@ def process(key, command, inputs, outputs, var={}):
     return out
 
 def launch_sisyphus(key):
-    command = "script/launch-sisyphus.sh"
+    command = os.path.join("script", "launch-sisyphus.sh")
     if not os.path.exists(command):
         command = "launch-sisyphus.sh"
     os.system("{} {}".format(command, key))
@@ -36,40 +38,40 @@ class Gaia(object):
         self.protocol = "http://"
         self.host = config.get('gaia_host', 'localhost:24442')
 
-    def post(self, endpoint, data):
+    def _post(self, endpoint, data):
         url = self.protocol + self.host + '/' + endpoint
         data=json.dumps(data)
         return requests.post(url, data=data).json()
 
-    def command(self, root, commands=None):
+    def command(self, workflow_name, commands=None):
         if commands is None:
             commands = []
-        return self.post('command', {
-            'root': root,
+        return self._post('command', {
+            'root': workflow_name,
             'commands': commands})
 
-    def merge(self, root, processes=None):
+    def merge(self, workflow_name, processes=None):
         if processes is None:
             processes = []
-        return self.post('merge', {
-            'root': root,
+        return self._post('merge', {
+            'root': workflow_name,
             'processes': processes})
 
-    def trigger(self, root):
-        return self.post('trigger', {
-            'root': root})
+    def trigger(self, workflow_name):
+        return self._post('trigger', {
+            'root': workflow_name})
 
-    def halt(self, root):
-        return self.post('halt', {
-            'root': root})
+    def halt(self, workflow_name):
+        return self._post('halt', {
+            'root': workflow_name})
 
-    def status(self, root):
-        return self.post('status', {
-            'root': root})
+    def status(self, workflow_name):
+        return self._post('status', {
+            'root': workflow_name})
 
-    def expire(self, root, keys):
-        return self.post('expire', {
-            'root': root,
+    def expire(self, workflow_name, keys):
+        return self._post('expire', {
+            'root': workflow_name,
             'expire': keys})
 
     def launch(self, keys):
