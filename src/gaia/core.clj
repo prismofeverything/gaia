@@ -222,7 +222,7 @@
     (try
       (handler request)
       (catch Exception e
-        (println "bad request -" request)
+        (log/exception! e "bad request" request)
         (response
          {:error "bad request"
           :request request})))))
