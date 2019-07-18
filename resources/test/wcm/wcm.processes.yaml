@@ -1,9 +1,9 @@
-- key: test-parca
+- name: test-parca
   command: parca
   outputs:
     sim-data: "sisyphus:data/wcm/gaia/test/sim-data"
 
-- key: test-sim
+- name: test-sim
   command: sim
   inputs:
     sim-data: "sisyphus:data/wcm/gaia/test/sim-data"
@@ -11,7 +11,7 @@
     sim-out: "sisyphus:data/wcm/gaia/test/sim-out"
     metadata: "sisyphus:data/wcm/gaia/test/metadata"
 
-- key: test-analysis
+- name: test-analysis
   command: analysis
   inputs:
     sim-out: "sisyphus:data/wcm/gaia/test/sim-out"
@@ -19,12 +19,12 @@
   outputs:
     plot-out: "sisyphus:data/wcm/gaia/test/plot-out"
 
-- key: again-parca
+- name: again-parca
   command: parca
   outputs:
     sim-data: "sisyphus:data/wcm/gaia/again/sim-data"
 
-- key: again-sim
+- name: again-sim
   command: sim
   inputs:
     sim-data: "sisyphus:data/wcm/gaia/again/sim-data"
@@ -32,7 +32,7 @@
     sim-out: "sisyphus:data/wcm/gaia/again/sim-out"
     metadata: "sisyphus:data/wcm/gaia/again/metadata"
 
-- key: again-analysis
+- name: again-analysis
   command: analysis
   inputs:
     sim-out: "sisyphus:data/wcm/gaia/again/sim-out"
