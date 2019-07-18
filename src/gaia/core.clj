@@ -94,14 +94,6 @@
     (sync/merge-commands! flow executor merging)
     state))
 
-;; (defn merge-commands!
-;;   [{:keys [flows commands executor] :as state} merging]
-;;   (let [prior (map name (keys (select-keys @commands (keys merging))))]
-;;     (log/info "prior commands" (into [] prior))
-;;     (doseq [[key flow] @flows]
-;;       (sync/expire-commands! flow executor commands prior))
-;;     (swap! commands merge merging)))
-
 (defn merge-processes!
   [{:keys [executor] :as state} root processes]
   (let [flow (find-flow! state root)]
@@ -129,8 +121,11 @@
   [{:keys [executor] :as state} root expire]
   (log/info "expiring keys" root expire)
   (let [flow (find-flow! state root)]
-    (log/info "expiring flow" flow)
-    (sync/expire-keys! flow executor expire)))
+    (try
+      (sync/expire-keys! flow executor expire)
+      (catch Exception e
+        (println e)
+        (.printStackTrace e)))))
 
 (defn flow-status!
   [state root]

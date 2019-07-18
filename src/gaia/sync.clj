@@ -243,15 +243,17 @@
 
 ;; TODO(ryan): get this to work with the new flow/find-descendants
 (defn expire-keys!
-  [{:keys [flow commands status tasks] :as state} executor expiring]
+  [{:keys [flow commands store status tasks] :as state} executor expiring]
   (let [now (deref flow)
         {:keys [data process] :as down} (flow/find-descendants now expiring)]
-    (send tasks dissoc-seq process)
+    (println "DESCENDANTS" down)
+    (cancel-tasks! tasks executor process)
     (swap!
      status
      (comp
       (partial activate-front! state now executor @commands)
-      (partial expunge-keys data)))
+      (partial expunge-keys data)
+      (partial find-existing store now)))
     (println "expired" down)
     down))
 
@@ -291,9 +293,10 @@
 
 (defn merge-commands!
   [{:keys [flow commands status tasks store] :as state} executor merging]
+  (println "COMMANDS" (keys merging))
+  (swap! commands merge merging)
   (try
     (expire-commands! state executor (keys merging))
     (catch Exception e
       (println e)
-      (.printStackTrace e)))
-  (swap! commands merge merging))
+      (.printStackTrace e))))
