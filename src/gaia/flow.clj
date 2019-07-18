@@ -18,6 +18,12 @@
   (let [colon (.indexOf bound ":")]
     (.substring bound (inc colon))))
 
+(defn splitfix
+  [bound]
+  (let [colon (.indexOf bound ":")]
+    [(keyword (.substring bound 0 colon))
+     (.substring bound (inc colon))]))
+
 (defn process-init
   [{:keys [key inputs outputs] :as process}]
   (let [process-key (prefix "process" key)
@@ -141,10 +147,10 @@
   [flow nodes]
   (let [process (map-prefix "process" nodes)
         data (map-prefix "data" nodes)
-        parallel (concat process data)]
-    (set
-     (map
-      unfix
-      (map-cat
-       (partial alg/pre-traverse flow)
-       parallel)))))
+        parallel (concat process data)
+        downstream (map-cat (partial alg/pre-traverse flow) parallel)
+        split (map splitfix downstream)]
+    (reduce
+     (fn [stream [what key]]
+       (update stream what conj key))
+     {} split)))

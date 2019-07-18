@@ -25,13 +25,16 @@
        :data {}})
      :tasks (agent {})}))
 
+(def running-states
+  #{:running :error})
+
 (defn find-running
   [tasks]
   (into
    {}
    (filter
     (fn [[key task]]
-      (= (:state task) :running))
+      (running-states (:state task)))
     tasks)))
 
 (defn send-tasks!
@@ -175,7 +178,7 @@
       (process-state! state event :error)
 
       "task-error"
-      (process-state! state event :error)
+      (process-state! state event :exception)
 
       "data-complete"
       (data-complete! state executor event)
@@ -194,19 +197,13 @@
         handle (partial executor-events! state executor)]
     (kafka/boot-consumer kafka handle)))
 
-(defn running-task?
-  [{:keys [state] :as task}]
-  (or
-   (= :initializing state)
-   (= :running state)))
-
 (defn executor-cancel!
   [executor tasks outstanding]
   (let [potential (select-keys tasks outstanding)
-        canceling (filter running-task? (vals potential))
-        expunge (mapv :name canceling)]
-    (log/info! "canceling tasks" expunge)
-    (doseq [cancel canceling]
+        canceling (find-running potential)
+        expunge (keys canceling)]
+    (log/info! "CANCELING" expunge)
+    (doseq [[key cancel] canceling]
       (executor/cancel! executor (:id cancel)))
     (apply dissoc tasks expunge)))
 
@@ -245,18 +242,19 @@
   [descendants status]
   (update status :data dissoc-seq descendants))
 
-;; TODO(ryan): get this to work with the new flow/find-descendants
 (defn expire-keys!
-  [{:keys [flow commands status tasks] :as state} executor expiring]
+  [{:keys [flow commands store status tasks] :as state} executor expiring]
   (let [now (deref flow)
         {:keys [data process] :as down} (flow/find-descendants now expiring)]
-    (send tasks dissoc-seq process)
+    (log/debug! "DESCENDANTS" down)
+    (cancel-tasks! tasks executor process)
     (swap!
      status
      (comp
       (partial activate-front! state now executor @commands)
-      (partial expunge-keys data)))
-    (log/debug! "expired" down)
+      (partial expunge-keys data)
+      (partial find-existing store now)))
+    (log/debug! "EXPIRED" down)
     down))
 
 (defn halt-flow!
@@ -294,8 +292,9 @@
 
 (defn merge-commands!
   [{:keys [flow commands status tasks store] :as state} executor merging]
+  (log/debug! "COMMANDS" (keys merging))
+  (swap! commands merge merging)
   (try
     (expire-commands! state executor (keys merging))
     (catch Exception e
-      (log/exception! e "merge-commands")))
-  (swap! commands merge merging))
+      (log/exception! e "merge-commands"))))
