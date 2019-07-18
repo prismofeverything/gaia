@@ -52,9 +52,9 @@
                        (submit!
                         (assoc task :root root))])
                     relevant))]
-    (log/debug! "RUNNING" (map first running))
-    (log/debug! "RELEVANT" (map first relevant))
-    (log/debug! "TRIGGERED" (map first triggered))
+    (log/debug! "RUNNING" (mapv first running))
+    (log/debug! "RELEVANT" (mapv first relevant))
+    (log/debug! "TRIGGERED" (mapv first triggered))
     (merge triggered prior)))
 
 (defn reset-tasks!

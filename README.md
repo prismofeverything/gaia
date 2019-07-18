@@ -59,9 +59,11 @@ Once here, you want to be able to send processes and commands to Gaia. First, cl
 The python client for Gaia lives at `client/python/gaia.py`. To connect to a running Gaia instance, find the host (or open an ssh tunnel to it) and do the following:
 
 ```
-import gaia
-config = {'gaia_host': 'localhost:24442'}
-flow = gaia.Gaia(config)
+from gaia.client import Gaia
+config = {
+    'gaia_host': '10.138.0.21:24442',
+    'kafka_host': '10.138.0.2:9092'}
+flow = Gaia(config)
 ```
 
 Now that we have a reference to the client, there are several methods we can call.
@@ -78,14 +80,16 @@ All of these methods are relative to a given namespace (root) except for `comman
 To just get something going, run the workflow in WCM:
 
 ```
+commands = gaia.load_yaml('../../resources/test/wcm/wcm.commands.yaml')
 wcm = gaia.load_yaml('../../resources/test/wcm/wcm.processes.yaml')
+flow.command('wcm', commands)
 flow.merge('wcm', wcm)
 ```
 
 You will also need to launch some sisyphus workers. To do that:
 
 ```
-flow.launch(['sisyphus-0', 'sisyphus-1'])
+flow.launch(['a', 'b'])
 ```
 
 Launch more if you want : ) Give each a unique key. They will deallocate after 5 minutes of inactivity.
