@@ -24,30 +24,30 @@
     [(keyword (.substring bound 0 colon))
      (.substring bound (inc colon))]))
 
-(defn process-init
-  [{:keys [key inputs outputs] :as process}]
-  (let [process-key (prefix "process" key)
-        node [process-key (assoc process :_process true)]
+(defn step-init
+  [{:keys [name inputs outputs] :as step}]
+  (let [step-name (prefix "step" name)
+        node [step-name (assoc step :_step true)]
         incoming (map
                   (fn [input]
-                    [(prefix "data" input) process-key])
+                    [(prefix "data" input) step-name])
                   (vals inputs))
         outgoing (map
                   (fn [output]
-                    [process-key (prefix "data" output)])
+                    [step-name (prefix "data" output)])
                   (vals outputs))]
     (cons
      node
      (concat incoming outgoing))))
 
 (defn generate-flow
-  [processes]
-  (let [init (map-cat process-init processes)]
+  [steps]
+  (let [init (map-cat step-init steps)]
     (apply graph/digraph init)))
 
-(defn merge-processes
-  [flow processes]
-  (let [init (map-cat process-init processes)]
+(defn merge-steps
+  [flow steps]
+  (let [init (map-cat step-init steps)]
     (apply graph/build-graph flow init)))
 
 (defn node-map
@@ -59,20 +59,20 @@
       [node (graph/attrs flow (prefix pre node))])
     nodes)))
 
-(defn process-nodes
+(defn step-nodes
   [flow]
   (let [nodes (graph/nodes flow)]
     (map
      unfix
      (filter
-      #(graph/attr flow % :_process)
+      #(graph/attr flow % :_step)
       nodes))))
 
-(defn process-map
+(defn step-map
   ([flow]
-   (process-map flow (process-nodes flow)))
+   (step-map flow (step-nodes flow)))
   ([flow nodes]
-   (node-map "process" flow nodes)))
+   (node-map "step" flow nodes)))
 
 (defn data-nodes
   [flow]
@@ -80,7 +80,7 @@
     (map
      unfix
      (remove
-      #(graph/attr flow % :_process)
+      #(graph/attr flow % :_step)
       nodes))))
 
 (defn data-map
@@ -101,8 +101,8 @@
 
 (defn missing-data
   [flow data]
-  (let [processes (map-prefix "process" (process-nodes flow))
-        full (map (partial full-node flow) processes)
+  (let [steps (map-prefix "step" (step-nodes flow))
+        full (map (partial full-node flow) steps)
         prefix-data (set (map-prefix "data" data))
         incomplete
         (filter
@@ -116,16 +116,16 @@
 
 (defn imminent-front
   [flow data]
-  (let [processes (map-prefix "process" (process-nodes flow))
+  (let [steps (map-prefix "step" (step-nodes flow))
         prefix-data (set (map-prefix "data" data))]
     (map
      unfix
      (filter
-      (fn [process]
+      (fn [step]
         (and
-         (every? prefix-data (graph/predecessors flow process))
-         (not-every? prefix-data (graph/successors flow process))))
-      processes))))
+         (every? prefix-data (graph/predecessors flow step))
+         (not-every? prefix-data (graph/successors flow step))))
+      steps))))
 
 (defn query-nodes
   [flow p?]
@@ -136,21 +136,21 @@
       (p? node (graph/attrs flow node)))
     (graph/nodes flow))))
 
-(defn command-processes
+(defn command-steps
   [flow command]
   (query-nodes
    flow
-   (fn [key node]
+   (fn [name node]
      (= (:command node) command))))
 
 (defn find-descendants
   [flow nodes]
-  (let [process (map-prefix "process" nodes)
+  (let [step (map-prefix "step" nodes)
         data (map-prefix "data" nodes)
-        parallel (concat process data)
+        parallel (concat step data)
         downstream (map-cat (partial alg/pre-traverse flow) parallel)
         split (map splitfix downstream)]
     (reduce
-     (fn [stream [what key]]
-       (update stream what conj key))
+     (fn [stream [what name]]
+       (update stream what conj name))
      {} split)))

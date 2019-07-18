@@ -76,56 +76,56 @@
      :executor executor}))
 
 (defn initialize-flow!
-  [{:keys [executor store kafka] :as state} root]
-  (let [pointed (store (name root))]
-    (sync/initialize-flow! root pointed executor kafka)))
+  [{:keys [executor store kafka] :as state} workflow]
+  (let [pointed (store (name workflow))]
+    (sync/initialize-flow! workflow pointed executor kafka)))
 
 (defn find-flow!
-  [{:keys [flows] :as state} root]
-  (if-let [flow (get @flows root)]
+  [{:keys [flows] :as state} workflow]
+  (if-let [flow (get @flows workflow)]
     flow
-    (let [flow (initialize-flow! state root)]
-      (swap! flows assoc root flow)
+    (let [flow (initialize-flow! state workflow)]
+      (swap! flows assoc workflow flow)
       flow)))
 
 (defn merge-commands!
-  [{:keys [flows executor] :as state} root merging]
-  (let [flow (find-flow! state root)]
+  [{:keys [flows executor] :as state} workflow merging]
+  (let [flow (find-flow! state workflow)]
     (sync/merge-commands! flow executor merging)
     state))
 
-(defn merge-processes!
-  [{:keys [executor] :as state} root processes]
-  (let [flow (find-flow! state root)]
-    (sync/merge-processes! flow executor processes)
+(defn merge-steps!
+  [{:keys [executor] :as state} workflow steps]
+  (let [flow (find-flow! state workflow)]
+    (sync/merge-steps! flow executor steps)
     state))
 
-(defn load-processes!
-  [state root path]
-  (let [processes (config/parse-yaml path)]
-    (merge-processes! state root processes)))
+(defn load-steps!
+  [state workflow path]
+  (let [steps (config/parse-yaml path)]
+    (merge-steps! state workflow steps)))
 
-(defn trigger-flow!
-  [{:keys [executor flows] :as state} root]
-  (let [flow (find-flow! state root)]
-    (sync/trigger-flow! flow executor)
+(defn run-flow!
+  [{:keys [executor flows] :as state} workflow]
+  (let [flow (find-flow! state workflow)]
+    (sync/run-flow! flow executor)
     state))
 
 (defn halt-flow!
-  [{:keys [executor tasks] :as state} root]
-  (let [flow (find-flow! state root)]
+  [{:keys [executor tasks] :as state} workflow]
+  (let [flow (find-flow! state workflow)]
     (sync/halt-flow! flow executor)
     state))
 
 (defn expire-keys!
-  [{:keys [executor] :as state} root expire]
-  (log/info! "expiring keys" root expire)
-  (let [flow (find-flow! state root)]
+  [{:keys [executor] :as state} workflow expire]
+  (log/info! "expiring keys" workflow expire)
+  (let [flow (find-flow! state workflow)]
     (sync/expire-keys! flow executor expire)))
 
 (defn flow-status!
-  [state root]
-  (let [flow (find-flow! state root)
+  [state workflow]
+  (let [flow (find-flow! state workflow)
         {:keys [state data]} @(:status flow)
         complete (sync/complete-keys data)
         status {:state state
@@ -140,74 +140,74 @@
 (defn command-handler
   [state]
   (fn [request]
-    (let [{:keys [root commands] :as body} (read-json (:body request))
-          root (keyword root)
+    (let [{:keys [workflow commands] :as body} (read-json (:body request))
+          workflow (keyword workflow)
           index (command/index-key commands)]
       (log/info! "commands request" body)
-      (merge-commands! state root index)
+      (merge-commands! state workflow index)
       (response
        {:commands
         (deref
          (:commands
-          (find-flow! state root)))}))))
+          (find-flow! state workflow)))}))))
 
 (defn merge-handler
   [state]
   (fn [request]
-    (let [{:keys [root processes] :as body} (read-json (:body request))
-          root (keyword root)]
+    (let [{:keys [workflow steps] :as body} (read-json (:body request))
+          workflow (keyword workflow)]
       (log/info! "merge request" body)
-      (merge-processes! state root processes)
+      (merge-steps! state workflow steps)
       (response
-       {:processes {root (map :key processes)}}))))
+       {:steps {workflow (map :key steps)}}))))
 
-(defn trigger-handler
+(defn run-handler
   [state]
   (fn [request]
-    (let [{:keys [root] :as body} (read-json (:body request))
-          root (keyword root)]
-      (log/info! "trigger request" body)
-      (trigger-flow! state root)
+    (let [{:keys [workflow] :as body} (read-json (:body request))
+          workflow (keyword workflow)]
+      (log/info! "run request" body)
+      (run-flow! state workflow)
       (response
-       {:trigger root}))))
+       {:run workflow}))))
 
 (defn halt-handler
   [state]
   (fn [request]
-    (let [{:keys [root] :as body} (read-json (:body request))
-          root (keyword root)]
+    (let [{:keys [workflow] :as body} (read-json (:body request))
+          workflow (keyword workflow)]
       (log/info! "halt request" body)
-      (halt-flow! state root)
+      (halt-flow! state workflow)
       (response
-       {:halt root}))))
+       {:halt workflow}))))
 
 (defn status-handler
   [state]
   (fn [request]
-    (let [{:keys [root] :as body} (read-json (:body request))
-          root (keyword root)]
+    (let [{:keys [workflow] :as body} (read-json (:body request))
+          workflow (keyword workflow)]
       (log/info! "status request" body)
       (response
-       {:root root
+       {:workflow workflow
         :status
-        (flow-status! state root)}))))
+        (flow-status! state workflow)}))))
 
 (defn expire-handler
   [state]
   (fn [request]
-    (let [{:keys [root expire] :as body} (read-json (:body request))
-          root (keyword root)]
+    (let [{:keys [workflow expire] :as body} (read-json (:body request))
+          workflow (keyword workflow)]
       (log/info! "expire request" body)
       (response
        {:expire
-        (expire-keys! state root expire)}))))
+        (expire-keys! state workflow expire)}))))
 
 (defn gaia-routes
   [state]
   [["/" :index (index-handler state)]
    ["/command" :command (command-handler state)]
    ["/merge" :merge (merge-handler state)]
-   ["/trigger" :trigger (trigger-handler state)]
+   ["/run" :run (run-handler state)]
    ["/halt" :halt (halt-handler state)]
    ["/status" :status (status-handler state)]
    ["/expire" :expire (expire-handler state)]])
@@ -243,11 +243,11 @@
     state))
 
 (defn load-yaml
-  [key config-path process-path]
+  [key config-path step-path]
   (let [config (config/read-path config-path)
         state (boot config)
-        state (load-processes! state key process-path)]
-    (trigger-flow! state key)))
+        state (load-steps! state key step-path)]
+    (run-flow! state key)))
 
 (defn -main
   [& args]

@@ -10,30 +10,30 @@
    (java.util.UUID/randomUUID)))
 
 (defn find-xput
-  [process command x key]
-  [(get-in process [x key])
+  [step command x key]
+  [(get-in step [x key])
    (get-in command [x key])])
 
 (defn find-xputs
-  [process command x]
+  [step command x]
   (map
-   (partial find-xput process command x)
+   (partial find-xput step command x)
    (keys (get command x))))
 
-(defn process->task
-  [process command]
-  {:id (or (:id process) (generate-id))
-   :name (:key process)
-   :root (:root process "gaia")
+(defn step->task
+  [step command]
+  {:id (or (:id step) (generate-id))
+   :name (:name step)
+   :workflow (:workflow step "gaia")
    :image (:image command)
-   :commands (:commands command)
-   :inputs (find-xputs process command :inputs)
-   :outputs (find-xputs process command :outputs)})
+   :command (:command command)
+   :inputs (find-xputs step command :inputs)
+   :outputs (find-xputs step command :outputs)})
 
 (defn submit-task!
-  [{:keys [rabbit]} commands process]
-  (let [command (get commands (keyword (:command process)))
-        task (process->task process command)]
+  [{:keys [rabbit]} commands step]
+  (let [command (get commands (keyword (:command step)))
+        task (step->task step command)]
     (rabbit/publish! rabbit task)
     (assoc task :state :running)))
 
@@ -48,8 +48,8 @@
 (deftype SisyphusExecutor [sisyphus]
   executor/Executor
   (submit!
-    [executor commands process]
-    (submit-task! sisyphus commands process))
+    [executor commands task]
+    (submit-task! sisyphus commands task))
   (cancel!
     [executor id]
     (cancel-task! sisyphus id)))

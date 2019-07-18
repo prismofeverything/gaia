@@ -12,9 +12,9 @@
    [gaia.executor :as executor]))
 
 (defn generate-sync
-  [root kafka store]
+  [workflow kafka store]
   (let [flow (flow/generate-flow [])]
-    {:root root
+    {:workflow workflow
      :flow (atom flow)
      :commands (atom {})
      :store store
@@ -38,7 +38,7 @@
     tasks)))
 
 (defn send-tasks!
-  [root executor store commands prior tasks]
+  [workflow executor store commands prior tasks]
   (log/debug! "PRIOR" prior)
   (log/debug! "TASKS" tasks)
   (let [running (find-running prior)
@@ -50,7 +50,7 @@
                     (fn [[key task]]
                       [key
                        (submit!
-                        (assoc task :root root))])
+                        (assoc task :workflow workflow))])
                     relevant))]
     (log/debug! "RUNNING" (mapv first running))
     (log/debug! "RELEVANT" (mapv first relevant))
@@ -62,13 +62,13 @@
   (send tasks (partial apply dissoc) reset))
 
 (defn compute-outputs
-  [process]
+  [step]
   (into
    {}
    (map
     (fn [k]
       [k {:state :computing}])
-    (vals (:outputs process)))))
+    (vals (:outputs step)))))
 
 (defn complete?
   [datum]
@@ -91,7 +91,7 @@
     (set/difference space complete)))
 
 (defn activate-front!
-  [{:keys [root store tasks] :as state} flow executor commands status]
+  [{:keys [workflow store tasks] :as state} flow executor commands status]
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
     (log/debug! "COMPLETE KEYS" (sort complete))
@@ -101,9 +101,9 @@
       (let [missing (missing-data flow (:data status))]
         (log/debug! "empty front - missing" missing)
         (assoc status :state (if (empty? missing) :complete :incomplete)))
-      (let [launching (flow/process-map flow front)]
+      (let [launching (flow/step-map flow front)]
         (log/debug! "LAUNCHING" launching)
-        (send tasks (partial send-tasks! root executor store commands) launching)
+        (send tasks (partial send-tasks! workflow executor store commands) launching)
         (-> status
             (assoc :state :running))))))
 
@@ -112,7 +112,7 @@
   (assoc-in
    status [:data (:key event)]
    (merge
-    (select-keys event [:root :path :key])
+    (select-keys event [:workflow :path :key])
     {:url (:key event)
      :state :complete})))
 
@@ -124,7 +124,7 @@
       (= id (:id task)))
     tasks)))
 
-(defn process-state!
+(defn step-state!
   [{:keys [tasks]} event state]
   (send
    tasks
@@ -139,7 +139,7 @@
    event))
 
 (defn data-complete!
-  [{:keys [root flow commands status events] :as state} executor event]
+  [{:keys [workflow flow commands status events] :as state} executor event]
   (if (= :halted (:state @status))
     (swap! status update :data dissoc (:key event))
     (do
@@ -154,31 +154,31 @@
         (executor/declare-event!
          events
          {:event "flow-complete"
-          :root root})
+          :workflow workflow})
 
         :incomplete
         (executor/declare-event!
          events
          {:event "flow-incomplete"
-          :root root})
+          :workflow workflow})
 
-        (log/debug! "FLOW CONTINUES" root)))))
+        (log/debug! "FLOW CONTINUES" workflow)))))
 
 (defn executor-events!
-  [{:keys [status root] :as state}
+  [{:keys [status workflow] :as state}
    executor topic event]
   (log/debug! "EXECUTOR EVENT" event)
-  (when (= (:root event) (name root))
+  (when (= (:workflow event) (name workflow))
     (condp = (:event event)
 
-      "process-complete"
-      (process-state! state event :complete)
+      "step-complete"
+      (step-state! state event :complete)
 
-      "process-error"
-      (process-state! state event :error)
+      "step-error"
+      (step-state! state event :error)
 
       "task-error"
-      (process-state! state event :exception)
+      (step-state! state event :exception)
 
       "data-complete"
       (data-complete! state executor event)
@@ -212,8 +212,8 @@
   (send tasks (partial executor-cancel! executor) canceling))
 
 (defn initialize-flow!
-  [root store executor kafka]
-  (let [flow (generate-sync root kafka store)
+  [workflow store executor kafka]
+  (let [flow (generate-sync workflow kafka store)
         listener (events-listener! flow executor kafka)]
     flow))
 
@@ -224,8 +224,8 @@
         existing (into {} (map initial-key complete))]
     (assoc status :data existing)))
 
-(defn trigger-flow!
-  [{:keys [root flow commands store status] :as state} executor]
+(defn run-flow!
+  [{:keys [workflow flow commands store status] :as state} executor]
   (when (not= :running (:state @status))
     (let [now @flow]
       (swap!
@@ -245,9 +245,9 @@
 (defn expire-keys!
   [{:keys [flow commands store status tasks] :as state} executor expiring]
   (let [now (deref flow)
-        {:keys [data process] :as down} (flow/find-descendants now expiring)]
+        {:keys [data step] :as down} (flow/find-descendants now expiring)]
     (log/debug! "DESCENDANTS" down)
-    (cancel-tasks! tasks executor process)
+    (cancel-tasks! tasks executor step)
     (swap!
      status
      (comp
@@ -258,9 +258,9 @@
     down))
 
 (defn halt-flow!
-  [{:keys [root flow tasks status store events] :as state} executor]
+  [{:keys [workflow flow tasks status store events] :as state} executor]
   (let [now @flow
-        halting (flow/process-map now)]
+        halting (flow/step-map now)]
     (cancel-tasks! tasks executor (keys halting))
     (swap!
      status
@@ -270,13 +270,13 @@
     (executor/declare-event!
      events
      {:event "flow-halted"
-      :root root})))
+      :workflow workflow})))
 
-(defn merge-processes!
-  [{:keys [flow commands status tasks store] :as state} executor processes]
-  (let [transform (command/transform-processes @commands processes)]
+(defn merge-steps!
+  [{:keys [flow commands status tasks store] :as state} executor steps]
+  (let [transform (command/transform-steps @commands steps)]
     (cancel-tasks! tasks executor (keys transform))
-    (swap! flow #(flow/merge-processes % (vals transform)))
+    (swap! flow #(flow/merge-steps % (vals transform)))
     (let [now @flow]
       (swap!
        status
@@ -286,9 +286,9 @@
 
 (defn expire-commands!
   [{:keys [flow commands] :as state} executor expiring]
-  (let [processes (template/map-cat (partial flow/command-processes @flow) expiring)]
-    (log/debug! "expiring processes" processes "from commands" (into [] expiring))
-    (expire-keys! state executor processes)))
+  (let [steps (template/map-cat (partial flow/command-steps @flow) expiring)]
+    (log/debug! "expiring steps" steps "from commands" (into [] expiring))
+    (expire-keys! state executor steps)))
 
 (defn merge-commands!
   [{:keys [flow commands status tasks store] :as state} executor merging]

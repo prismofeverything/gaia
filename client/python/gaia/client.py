@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, print_function
+pfrom __future__ import absolute_import, division, print_function
 
 import os
 import sys
@@ -14,7 +14,7 @@ def load_yaml(path):
     handle.close()
     return load
 
-def process(key, command, inputs, outputs, var={}):
+def step(key, command, inputs, outputs, var={}):
     out = {
         key: key,
         command: command,
@@ -43,35 +43,35 @@ class Gaia(object):
         data=json.dumps(data)
         return requests.post(url, data=data).json()
 
-    def command(self, workflow_name, commands=None):
+    def command(self, workflow, commands=None):
         if commands is None:
             commands = []
         return self._post('command', {
-            'root': workflow_name,
+            'workflow': workflow,
             'commands': commands})
 
-    def merge(self, workflow_name, processes=None):
-        if processes is None:
-            processes = []
+    def merge(self, workflow, steps=None):
+        if steps is None:
+            steps = []
         return self._post('merge', {
-            'root': workflow_name,
-            'processes': processes})
+            'workflow': workflow,
+            'steps': steps})
 
-    def trigger(self, workflow_name):
-        return self._post('trigger', {
-            'root': workflow_name})
+    def run(self, workflow):
+        return self._post('run', {
+            'workflow': workflow})
 
-    def halt(self, workflow_name):
+    def halt(self, workflow):
         return self._post('halt', {
-            'root': workflow_name})
+            'workflow': workflow})
 
-    def status(self, workflow_name):
+    def status(self, workflow):
         return self._post('status', {
-            'root': workflow_name})
+            'workflow': workflow})
 
-    def expire(self, workflow_name, keys):
+    def expire(self, workflow, keys):
         return self._post('expire', {
-            'root': workflow_name,
+            'workflow': workflow,
             'expire': keys})
 
     def launch(self, keys):

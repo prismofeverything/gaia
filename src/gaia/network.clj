@@ -39,9 +39,9 @@
             (recur nodes coloring)
             (recur nodes (color-component coloring node))))))))
 
-(defn process-init
-  [{:keys [key inputs outputs] :as process}]
-  (let [node [key (assoc process :_process true)]
+(defn step-init
+  [{:keys [key inputs outputs] :as step}]
+  (let [node [key (assoc step :_step true)]
         incoming (map
                   (fn [input]
                     [input key])
@@ -55,35 +55,35 @@
      (concat incoming outgoing))))
 
 (defn generate-flow
-  [processes]
-  (let [init (map-cat process-init processes)]
+  [steps]
+  (let [init (map-cat step-init steps)]
     (apply graph/digraph init)))
 
-(defn merge-processes
-  [flow processes]
-  (let [init (map-cat process-init processes)]
+(defn merge-steps
+  [flow steps]
+  (let [init (map-cat step-init steps)]
     (apply graph/build-graph flow init)))
 
-(defn process-nodes
+(defn step-nodes
   [flow]
   (let [nodes (graph/nodes flow)]
     (filter
-     #(graph/attr flow % :_process)
+     #(graph/attr flow % :_step)
      nodes)))
 
 (defn data-nodes
   [flow]
   (let [nodes (graph/nodes flow)]
     (remove
-     #(graph/attr flow % :_process)
+     #(graph/attr flow % :_step)
      nodes)))
 
 (defn immanent-front
   [flow data]
-  (let [processes (process-nodes flow)]
+  (let [steps (step-nodes flow)]
     (filter
-     (fn [process]
+     (fn [step]
        (and
-        (every? data (graph/predecessors flow process))
-        (not-every? data (graph/successors flow process))))
-     processes)))
+        (every? data (graph/predecessors flow step))
+        (not-every? data (graph/successors flow step))))
+     steps)))

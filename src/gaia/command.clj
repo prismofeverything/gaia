@@ -20,15 +20,15 @@
   (with-out-str (clojure.pprint/pprint clj)))
 
 (defn validate-apply-composite!
-  [{:keys [inputs outputs]} process]
-  ;; (log/debug! "VALIDATE" (pp process))
-  (let [pin (:inputs process)
-        pout (:outputs process)
-        pvars (:vars process)]
+  [{:keys [inputs outputs]} step]
+  ;; (log/debug! "VALIDATE" (pp step))
+  (let [pin (:inputs step)
+        pout (:outputs step)
+        pvars (:vars step)]
     (if-not (empty? (difference (map keyword inputs) (keys pin)))
-      (throw (Exception. (str (:key process) " - all inputs must be specified: " inputs (keys pin))))
+      (throw (Exception. (str (:key step) " - all inputs must be specified: " inputs (keys pin))))
     (if-not (empty? (difference (map keyword outputs) (keys pout)))
-      (throw (Exception. (str (:key process) " - all outputs must be specified: " outputs (keys pout))))))))
+      (throw (Exception. (str (:key step) " - all outputs must be specified: " outputs (keys pout))))))))
 
 (defn substitute-values
   [template values]
@@ -40,31 +40,31 @@
     template)))
 
 (defn generate-binding
-  [process step output global]
+  [step step output global]
   (str
    "composite/"
-   process "/"
+   step "/"
    step "/"
    output ":"
    global))
 
 (defn generate-outputs
-  [process outputs step]
+  [step outputs step]
   (reduce
    (fn [all [key template]]
-     (if (get-in process [:outputs (keyword template)])
+     (if (get-in step [:outputs (keyword template)])
        all
-       (assoc all (keyword template) (generate-binding (:key process) (:key step) (name key) template))))
+       (assoc all (keyword template) (generate-binding (:key step) (:key step) (name key) template))))
    outputs (:outputs step)))
 
 (declare apply-composite)
 
 (defn apply-step
-  [commands process vars inputs outputs {:keys [key command] :as step}]
+  [commands step vars inputs outputs {:keys [key command] :as step}]
   (let [ovars (template/evaluate-map (:vars step) vars)
         oin (substitute-values (:inputs step) inputs)
         oout (substitute-values (:outputs step) outputs)
-        inner {:key (str (:key process) ":" key)
+        inner {:key (str (:key step) ":" key)
                :command command
                :vars ovars
                :inputs oin
@@ -73,21 +73,21 @@
     (apply-composite commands exec inner)))
 
 (defn apply-composite
-  [commands {:keys [vars inputs outputs steps] :as command} process]
+  [commands {:keys [vars inputs outputs steps] :as command} step]
   (if steps
     (do
-      (validate-apply-composite! command process)
-      (let [generated (reduce (partial generate-outputs process) {} steps)
+      (validate-apply-composite! command step)
+      (let [generated (reduce (partial generate-outputs step) {} steps)
             apply-partial (partial
                            apply-step
                            commands
-                           process
-                           (:vars process)
-                           (merge (:inputs process) (:outputs process) generated)
-                           (merge (:outputs process) generated))
+                           step
+                           (:vars step)
+                           (merge (:inputs step) (:outputs step) generated)
+                           (merge (:outputs step) generated))
             asteps (mapcat apply-partial steps)]
         (mapv identity asteps)))
-    [process]))
+    [step]))
 
 (defn index-seq
   [f s]
@@ -119,7 +119,7 @@
   (string/replace s #"[^a-zA-Z0-9\-]" ""))
 
 (defn template-vars
-  [{:keys [key vars inputs outputs] :as process}]
+  [{:keys [key vars inputs outputs] :as step}]
   (let [arrays (filter-map (fn [k v] (coll? v)) vars)
         series (cartesian-map arrays)]
     (map
@@ -129,7 +129,7 @@
              unique (string/join "-" (conj values key))
              env (walk/stringify-keys (merge vars arrayed))]
          (merge
-          process
+          step
           {:key unique
            :vars env
            :inputs (template/evaluate-map inputs env)
@@ -143,16 +143,16 @@
    s))
 
 (defn fill-templates
-  [processes]
-  (template/map-cat template-vars processes))
+  [steps]
+  (template/map-cat template-vars steps))
 
-(defn transform-processes
-  [commands processes]
-  (let [templates (fill-templates processes)]
+(defn transform-steps
+  [commands steps]
+  (let [templates (fill-templates steps)]
     (index-key
      (template/map-cat
-      (fn [process]
-        (let [command (get commands (keyword (:command process)))]
-          (apply-composite commands command process)))
+      (fn [step]
+        (let [command (get commands (keyword (:command step)))]
+          (apply-composite commands command step)))
       templates))))
 

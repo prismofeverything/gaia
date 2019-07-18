@@ -5,7 +5,7 @@
    [sisyphus.log :as log]))
 
 (defprotocol Executor
-  (submit! [executor commands process])
+  (submit! [executor commands task])
   (cancel! [executor id]))
 
 (defn declare-event!

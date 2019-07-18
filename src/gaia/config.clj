@@ -15,7 +15,7 @@
 (def config-keys
   [:variables
    :commands
-   :processes
+   :steps
    :agents])
 
 (defn read-path
@@ -41,13 +41,13 @@
                   [key {}]))))
           config-keys))
         config (update config :commands command/index-key)
-        config (update config :processes (partial command/transform-processes (:commands config)))]
+        config (update config :steps (partial command/transform-steps (:commands config)))]
     config))
 
-(defn load-processes
+(defn load-steps
   [path]
-  (let [processes (parse-yaml path)]
-    (command/fill-templates processes)))
+  (let [steps (parse-yaml path)]
+    (command/fill-templates steps)))
 
 (defn load-commands
   [path]
