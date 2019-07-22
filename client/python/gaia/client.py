@@ -52,6 +52,9 @@ class Gaia(object):
         """Add a list of Commands to the named workflow. Return all of its Commands."""
         if commands is None:
             commands = []
+        assert isinstance(workflow, str)
+        assert isinstance(commands, list)
+
         return self._post('command', {
             'workflow': workflow,
             'commands': commands})
@@ -61,6 +64,9 @@ class Gaia(object):
         """Merge a list of Steps into the named workflow. Return all of its Steps."""
         if steps is None:
             steps = []
+        assert isinstance(workflow, str)
+        assert isinstance(steps, list)
+
         return self._post('merge', {
             'workflow': workflow,
             'steps': steps})
@@ -68,24 +74,30 @@ class Gaia(object):
     def run(self, workflow):
         # type: (str) -> None
         """Start running the named workflow. Usually this happens automatically."""
+        assert isinstance(workflow, str)
         return self._post('run', {
             'workflow': workflow})
 
     def halt(self, workflow):
         # type: (str) -> None
         """Stop running the named workflow."""
+        assert isinstance(workflow, str)
         return self._post('halt', {
             'workflow': workflow})
 
     def status(self, workflow):
         # type: (str) -> dict
         """Return all the status info for the named workflow."""
+        assert isinstance(workflow, str)
         return self._post('status', {
             'workflow': workflow})
 
     def expire(self, workflow, keys):
         # type: (str, List[str]) -> None
         """Expire outputs and downstream dependencies given storage keys and/or Step names."""
+        assert isinstance(workflow, str)
+        assert isinstance(keys, list), 'need a list of storage keys and/or Step names'
+
         return self._post('expire', {
             'workflow': workflow,
             'expire': keys})
@@ -93,6 +105,7 @@ class Gaia(object):
     def launch(self, names):
         # type: (List[str]) -> None
         """Launch the named Sisyphus worker nodes."""
+        assert isinstance(names, list), 'need a list of worker names'
         pool = multiprocessing.Pool(10)
         pool.map(launch_sisyphus, names)
 
