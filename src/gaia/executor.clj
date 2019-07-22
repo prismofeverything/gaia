@@ -10,7 +10,7 @@
 
 (defn declare-event!
   [producer message log-event]
-  (log/warn! log-event (:workflow message)) ; notice! would be more fitting but Logs Viewer shows it like info!
+  (log/warn! log-event (name (:workflow message))) ; notice would be more fitting but Logs Viewer shows it like info
   (kafka/send!
    producer
    "gaia-events"

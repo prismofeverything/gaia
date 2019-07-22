@@ -164,7 +164,7 @@
           :workflow workflow}
          "WORKFLOW STALLED")
 
-        (log/debug! "WORKFLOW CONTINUES" workflow)))))
+        (log/debug! "WORKFLOW CONTINUES" (name workflow))))))
 
 (defn executor-events!
   [{:keys [status workflow] :as state}
