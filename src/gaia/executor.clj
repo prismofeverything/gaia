@@ -9,8 +9,8 @@
   (cancel! [executor id]))
 
 (defn declare-event!
-  [producer message]
-  (log/warn! "declare event" message) ; notice! would be more fitting but Logs Viewer shows it like info!
+  [producer message log-event]
+  (log/warn! log-event (:workflow message)) ; notice! would be more fitting but Logs Viewer shows it like info!
   (kafka/send!
    producer
    "gaia-events"

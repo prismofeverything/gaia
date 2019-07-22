@@ -154,15 +154,17 @@
         (executor/declare-event!
          events
          {:event "flow-complete"
-          :workflow workflow})
+          :workflow workflow}
+         "WORKFLOW COMPLETE")
 
         :incomplete
         (executor/declare-event!
          events
          {:event "flow-incomplete"
-          :workflow workflow})
+          :workflow workflow}
+         "WORKFLOW STALLED")
 
-        (log/debug! "FLOW CONTINUES" workflow)))))
+        (log/debug! "WORKFLOW CONTINUES" workflow)))))
 
 (defn executor-events!
   [{:keys [status workflow] :as state}
@@ -183,7 +185,19 @@
       "data-complete"
       (data-complete! state executor event)
 
-      (log/info! "UNKNOWN EVENT" (:event event)))))
+      "container-create"
+      ()
+
+      "execution-start"
+      ()
+
+      "execution-complete"
+      ()
+
+      "container-exit"
+      ()
+
+      (log/warn! "UNKNOWN EVENT" (:event event)))))
 
 (defn initial-key
   [key]
@@ -270,7 +284,8 @@
     (executor/declare-event!
      events
      {:event "flow-halted"
-      :workflow workflow})))
+      :workflow workflow}
+     "WORKFLOW HALTED")))
 
 (defn merge-steps!
   [{:keys [flow commands status tasks store] :as state} executor steps]
