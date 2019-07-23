@@ -5,7 +5,7 @@ import sys
 import json
 import yaml
 import requests
-from typing import List, Optional
+from typing import Dict, List, Optional
 import multiprocessing
 
 
@@ -48,8 +48,9 @@ class Gaia(object):
         return requests.post(url, data=data).json()
 
     def command(self, workflow, commands=None):
-        # type: (str, Optional[List[str]]) -> List[str]
-        """Add a list of Commands to the named workflow. Return all of its Commands."""
+        # type: (str, Optional[List[dict]]) -> Dict[Dict[dict]]
+        """Add a list of Commands to the named workflow. Return a dict containing
+        all of them, {'commands': {name: command, ...}}."""
         if commands is None:
             commands = []
         assert isinstance(workflow, str)
@@ -60,8 +61,9 @@ class Gaia(object):
             'commands': commands})
 
     def merge(self, workflow, steps=None):
-        # type: (str, Optional[List[str]]) -> List[str]
-        """Merge a list of Steps into the named workflow. Return all of its Steps."""
+        # type: (str, Optional[List[dict]]) -> List[dict]
+        """Merge a list of Steps into the named workflow and start running the
+        Steps that can run. Return a list of the workflow's Steps."""
         if steps is None:
             steps = []
         assert isinstance(workflow, str)
