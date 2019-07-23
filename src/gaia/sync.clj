@@ -214,12 +214,12 @@
 (defn executor-cancel!
   [executor tasks outstanding]
   (let [potential (select-keys tasks outstanding)
-        canceling (find-running potential)
-        expunge (keys canceling)]
-    (log/info! "CANCELING" expunge)
-    (doseq [[key cancel] canceling]
-      (executor/cancel! executor (:id cancel)))
-    (apply dissoc tasks expunge)))
+        canceling (find-running potential)]
+    (when-let [expunge (keys canceling)]
+      (log/info! "CANCELING" expunge)
+      (doseq [[key cancel] canceling]
+        (executor/cancel! executor (:id cancel)))
+      (apply dissoc tasks expunge))))
 
 (defn cancel-tasks!
   [tasks executor canceling]
