@@ -216,7 +216,7 @@
   (let [potential (select-keys tasks outstanding)
         canceling (find-running potential)]
     (when-let [expunge (keys canceling)]
-      (log/info! "CANCELING" expunge)
+      (log/info! "CANCELING" canceling)
       (doseq [[key cancel] canceling]
         (executor/cancel! executor (:id cancel)))
       (apply dissoc tasks expunge))))
@@ -262,6 +262,7 @@
         {:keys [data step] :as down} (flow/find-descendants now expiring)]
     (log/debug! "DESCENDANTS" down)
     (cancel-tasks! tasks executor step)
+    (log/debug! "TASKS" @tasks)
     (swap!
      status
      (comp

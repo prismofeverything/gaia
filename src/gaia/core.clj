@@ -134,7 +134,7 @@
                 :commands @(:commands flow)
                 :waiting (flow/missing-data @(:flow flow) complete)
                 :data data}]
-    (println "STATUS" status)
+    (println "STATUS" (:tasks status))
     status))
 
 (defn command-handler
