@@ -167,7 +167,7 @@
 (defn executor-events!
   [{:keys [workflow status flow] :as state}
    executor topic event]
-  (log/debug! "EXECUTOR EVENT" workflow event)
+  (log/debug! "WORKER EVENT" (:event event) "for" (name workflow) event)
   (condp = (:event event)
 
     "step-complete"
@@ -194,7 +194,7 @@
     "container-exit"
     ()
 
-    (log/warn! "UNKNOWN EVENT" (:event event))))
+    (log/warn! "UNKNOWN WORKER EVENT" (:event event))))
 
 (defn initial-key
   [key]
