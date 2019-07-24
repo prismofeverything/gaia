@@ -55,6 +55,32 @@
      :headers {"content-type" "text/html"}
      :body (slurp "resources/public/index.html")}))
 
+(defn initialize-flow!
+  [{:keys [store kafka] :as state} workflow]
+  (let [pointed (store (name workflow))]
+    (sync/generate-sync workflow kafka pointed)))
+
+(defn find-flow!
+  [{:keys [flows] :as state} workflow]
+  (if-let [flow (get @flows (keyword workflow))]
+    flow
+    (let [flow (initialize-flow! state workflow)]
+      (swap! flows assoc workflow flow)
+      flow)))
+
+(defn handle-kafka
+  [{:keys [executor] :as state} topic message]
+  (let [flow (find-flow! state (:workflow message))]
+    (sync/executor-events! flow executor topic message)))
+
+(defn executor-status!
+  [{:keys [kafka] :as state}]
+  (let [status-topic (get kafka :status-topic "gaia-status")
+        topics ["gaia-events" status-topic]
+        kafka (update kafka :subscribe concat topics)
+        handle (partial handle-kafka state)]
+    (kafka/boot-consumer kafka handle)))
+
 (defn boot
   [config]
   (let [flows (atom {})
@@ -67,26 +93,17 @@
                      (:executor config)
                      :kafka kafka
                      :rabbit rabbit)
-        executor (config/load-executor exec-config)]
-    {:config config
-     :rabbit rabbit
-     :kafka kafka
-     :flows flows
-     :store store
-     :executor executor}))
-
-(defn initialize-flow!
-  [{:keys [executor store kafka] :as state} workflow]
-  (let [pointed (store (name workflow))]
-    (sync/initialize-flow! workflow pointed executor kafka)))
-
-(defn find-flow!
-  [{:keys [flows] :as state} workflow]
-  (if-let [flow (get @flows workflow)]
-    flow
-    (let [flow (initialize-flow! state workflow)]
-      (swap! flows assoc workflow flow)
-      flow)))
+        executor (config/load-executor exec-config)
+        state {:config config
+               :rabbit rabbit
+               :kafka kafka
+               :flows flows
+               :store store
+               :executor executor}]
+    (assoc-in
+     state
+     [:kafka :consumer]
+     (executor-status! state))))
 
 (defn merge-commands!
   [{:keys [flows executor] :as state} workflow merging]
@@ -112,7 +129,7 @@
     state))
 
 (defn halt-flow!
-  [{:keys [executor tasks] :as state} workflow]
+  [{:keys [executor] :as state} workflow]
   (let [flow (find-flow! state workflow)]
     (sync/halt-flow! flow executor)
     state))
@@ -126,11 +143,11 @@
 (defn flow-status!
   [state workflow]
   (let [flow (find-flow! state workflow)
-        {:keys [state data]} @(:status flow)
+        {:keys [state data tasks]} @(:status flow)
         complete (sync/complete-keys data)
         status {:state state
                 :flow @(:flow flow)
-                :tasks @(:tasks flow)
+                :tasks tasks
                 :commands @(:commands flow)
                 :waiting (flow/missing-data @(:flow flow) complete)
                 :data data}]
@@ -237,7 +254,8 @@
         app (-> router
                 (resource/wrap-resource "public")
                 (keyword/wrap-keyword-params)
-                (params/wrap-params))]
+                (params/wrap-params)
+                (wrap-error))]
     (println config)
     (http/start-server app {:port 24442})
     state))

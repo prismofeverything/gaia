@@ -1,4 +1,4 @@
-(defproject gaia "0.0.12"
+(defproject gaia "0.0.13"
   :description "regenerating dependency network"
   :url "http://github.com/prismofeverything/gaia"
   :license {:name "MIT"

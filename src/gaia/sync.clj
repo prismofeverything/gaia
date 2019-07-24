@@ -22,8 +22,8 @@
      :status
      (atom
       {:state :initialized
-       :data {}})
-     :tasks (agent {})}))
+       :data {}
+       :tasks {}})}))
 
 (def running-states
   #{:running :error})
@@ -38,7 +38,7 @@
     tasks)))
 
 (defn send-tasks!
-  [workflow executor store commands prior tasks]
+  [executor workflow commands prior tasks]
   (log/debug! "PRIOR" prior)
   (log/debug! "TASKS" tasks)
   (let [running (find-running prior)
@@ -53,13 +53,8 @@
                         (assoc task :workflow workflow))])
                     relevant))]
     (log/debug! "RUNNING" (mapv first running))
-    (log/debug! "RELEVANT" (mapv first relevant))
     (log/debug! "TRIGGERED" (mapv first triggered))
     (merge triggered prior)))
-
-(defn reset-tasks!
-  [{:keys [tasks] :as state} status reset]
-  (send tasks (partial apply dissoc) reset))
 
 (defn compute-outputs
   [step]
@@ -91,7 +86,7 @@
     (set/difference space complete)))
 
 (defn activate-front!
-  [{:keys [workflow store tasks] :as state} flow executor commands status]
+  [{:keys [workflow store] :as state} flow executor commands status]
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
     (log/debug! "COMPLETE KEYS" (sort complete))
@@ -103,9 +98,14 @@
         (assoc status :state (if (empty? missing) :complete :incomplete)))
       (let [launching (flow/step-map flow front)]
         (log/debug! "LAUNCHING" launching)
-        (send tasks (partial send-tasks! workflow executor store commands) launching)
-        (-> status
-            (assoc :state :running))))))
+        ;; (swap! tasks (partial send-tasks! workflow executor store commands) launching)
+        (assoc
+         status
+         :state :running
+         :tasks (send-tasks! executor workflow commands (:tasks status) launching))))))
+
+        ;; (-> status
+        ;;     (assoc :state :running))
 
 (defn complete-key
   [event status]
@@ -125,28 +125,30 @@
     tasks)))
 
 (defn step-state!
-  [{:keys [tasks]} event state]
-  (send
-   tasks
-   (fn [all task]
-     (if-let [found (find-task all (:id task))]
+  [{:keys [status]} event state]
+  (swap!
+   status
+   update
+   :tasks
+   (fn [tasks event]
+     (if-let [found (find-task tasks (:id event))]
        (do
          (log/debug! "FOUND" found)
-         (-> all
+         (-> tasks
              (assoc-in [(first found) :state] state)
              (assoc-in [(first found) :event] event)))
-       all))
+       tasks))
    event))
 
 (defn data-complete!
   [{:keys [workflow flow commands status events] :as state} executor event]
   (if (= :halted (:state @status))
     (swap! status update :data dissoc (:key event))
-    (do
+    (let [now @flow]
       (swap!
        status
        (comp
-        (partial activate-front! state @flow executor @commands)
+        (partial activate-front! state now executor @commands)
         (partial complete-key event)))
       (condp = (:state @status)
 
@@ -167,69 +169,62 @@
         (log/debug! "WORKFLOW CONTINUES" (name workflow))))))
 
 (defn executor-events!
-  [{:keys [status workflow] :as state}
+  [{:keys [workflow status flow] :as state}
    executor topic event]
-  (log/debug! "EXECUTOR EVENT" event workflow)
-  (when (= (:workflow event) (name workflow))
-    (condp = (:event event)
+  (log/debug! "EXECUTOR EVENT" workflow event)
+  (condp = (:event event)
 
-      "step-complete"
-      (step-state! state event :complete)
+    "step-complete"
+    (step-state! state event :complete)
 
-      "step-error"
-      (step-state! state event :error)
+    "step-error"
+    (step-state! state event :error)
 
-      "task-error"
-      (step-state! state event :exception)
+    "task-error"
+    (step-state! state event :exception)
 
-      "data-complete"
-      (data-complete! state executor event)
+    "data-complete"
+    (data-complete! state executor event)
 
-      "container-create"
-      ()
+    "container-create"
+    ()
 
-      "execution-start"
-      ()
+    "execution-start"
+    ()
 
-      "execution-complete"
-      ()
+    "execution-complete"
+    ()
 
-      "container-exit"
-      ()
+    "container-exit"
+    ()
 
-      (log/warn! "UNKNOWN EVENT" (:event event)))))
+    (log/warn! "UNKNOWN EVENT" (:event event))))
 
 (defn initial-key
   [key]
   [key {:state :complete}])
 
-(defn events-listener!
-  [state executor kafka]
-  (let [status-topic (get kafka :status-topic "gaia-status")
-        topics ["gaia-events" status-topic]
-        kafka (update kafka :subscribe concat topics)
-        handle (partial executor-events! state executor)]
-    (kafka/boot-consumer kafka handle)))
+(defn target-tasks
+  [tasks outstanding]
+  (let [potential (select-keys tasks outstanding)]
+    (find-running potential)))
 
-(defn executor-cancel!
-  [executor tasks outstanding]
-  (let [potential (select-keys tasks outstanding)
-        canceling (find-running potential)]
-    (when-let [expunge (keys canceling)]
-      (log/info! "CANCELING" canceling)
-      (doseq [[key cancel] canceling]
-        (executor/cancel! executor (:id cancel)))
-      (apply dissoc tasks expunge))))
+(defn dissoc-seq
+  [m s]
+  (apply dissoc m s))
 
 (defn cancel-tasks!
-  [tasks executor canceling]
-  (send tasks (partial executor-cancel! executor) canceling))
-
-(defn initialize-flow!
-  [workflow store executor kafka]
-  (let [flow (generate-sync workflow kafka store)
-        listener (events-listener! flow executor kafka)]
-    flow))
+  [status executor canceling]
+  (log/info! "CANCELING" canceling)
+  (doseq [key canceling]
+    (let [cancel (get-in @status [:tasks key])]
+      (executor/cancel! executor (:id cancel))))
+  (swap!
+   status
+   update
+   :tasks
+   dissoc-seq
+   canceling))
 
 (defn find-existing
   [store flow status]
@@ -248,21 +243,19 @@
         (partial activate-front! state now executor @commands)
         (partial find-existing store now))))))
 
-(defn dissoc-seq
-  [m s]
-  (apply dissoc m s))
-
 (defn expunge-keys
   [descendants status]
   (update status :data dissoc-seq descendants))
 
 (defn expire-keys!
-  [{:keys [flow commands store status tasks] :as state} executor expiring]
+  [{:keys [flow commands store status] :as state} executor expiring]
   (let [now (deref flow)
-        {:keys [data step] :as down} (flow/find-descendants now expiring)]
+        {:keys [data step] :as down} (flow/find-descendants now expiring)
+        tasks (:tasks @status)
+        targets (target-tasks tasks step)]
     (log/debug! "DESCENDANTS" down)
-    (cancel-tasks! tasks executor step)
-    (log/debug! "TASKS" @tasks)
+    (cancel-tasks! status executor step)
+    (log/debug! "TASKS" tasks)
     (swap!
      status
      (comp
@@ -273,10 +266,10 @@
     down))
 
 (defn halt-flow!
-  [{:keys [workflow flow tasks status store events] :as state} executor]
+  [{:keys [workflow flow status store events] :as state} executor]
   (let [now @flow
         halting (flow/step-map now)]
-    (cancel-tasks! tasks executor (keys halting))
+    (cancel-tasks! status executor (keys halting))
     (swap!
      status
      (comp
@@ -289,9 +282,9 @@
      "WORKFLOW HALTED")))
 
 (defn merge-steps!
-  [{:keys [flow commands status tasks store] :as state} executor steps]
+  [{:keys [flow commands status store] :as state} executor steps]
   (let [transform (command/transform-steps @commands steps)]
-    (cancel-tasks! tasks executor (keys transform))
+    (cancel-tasks! status executor (keys transform))
     (swap! flow #(flow/merge-steps % (vals transform)))
     (let [now @flow]
       (swap!
@@ -307,7 +300,7 @@
     (expire-keys! state executor steps)))
 
 (defn merge-commands!
-  [{:keys [flow commands status tasks store] :as state} executor merging]
+  [{:keys [flow commands status store] :as state} executor merging]
   (log/debug! "COMMANDS" (keys merging))
   (swap! commands merge merging)
   (try
