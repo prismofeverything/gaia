@@ -169,7 +169,7 @@
 (defn executor-events!
   [{:keys [status workflow] :as state}
    executor topic event]
-  (log/debug! "EXECUTOR EVENT" event)
+  (log/debug! "EXECUTOR EVENT" event workflow)
   (when (= (:workflow event) (name workflow))
     (condp = (:event event)
 
