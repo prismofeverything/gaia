@@ -98,14 +98,10 @@
         (assoc status :state (if (empty? missing) :complete :incomplete)))
       (let [launching (flow/step-map flow front)]
         (log/debug! "LAUNCHING" launching)
-        ;; (swap! tasks (partial send-tasks! workflow executor store commands) launching)
         (assoc
          status
          :state :running
          :tasks (send-tasks! executor workflow commands (:tasks status) launching))))))
-
-        ;; (-> status
-        ;;     (assoc :state :running))
 
 (defn complete-key
   [event status]
