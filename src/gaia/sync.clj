@@ -11,6 +11,18 @@
    [gaia.store :as store]
    [gaia.executor :as executor]))
 
+(defn log-debug-if!
+  "Log a debug message if the sequence is not empty."
+  [message if-seq]
+  (when (seq if-seq)
+    (log/debug! message if-seq)))
+
+(defn log-info-if!
+  "Log an info message if the sequence is not empty."
+  [message if-seq]
+  (when (seq if-seq)
+    (log/info! message if-seq)))
+
 (defn generate-sync
   [workflow kafka store]
   (let [flow (flow/generate-flow [])]
@@ -39,8 +51,8 @@
 
 (defn send-tasks!
   [executor workflow commands prior tasks]
-  (log/debug! "PRIOR" prior)
-  (log/debug! "TASKS" tasks)
+  (log-debug-if! "PRIOR" prior)
+  (log-debug-if! "TASKS" tasks)
   (let [running (find-running prior)
         relevant (remove (comp (partial get running) first) tasks)
         submit! (partial executor/submit! executor commands)
@@ -52,8 +64,8 @@
                        (submit!
                         (assoc task :workflow workflow))])
                     relevant))]
-    (log/debug! "RUNNING" (mapv first running))
-    (log/debug! "TRIGGERED" (mapv first triggered))
+    (log-debug-if! "RUNNING" (mapv first running))
+    (log-debug-if! "TRIGGERED" (mapv first triggered))
     (merge triggered prior)))
 
 (defn compute-outputs
@@ -89,9 +101,9 @@
   [{:keys [workflow store] :as state} flow executor commands status]
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
-    (log/debug! "COMPLETE KEYS" (sort complete))
-    (log/debug! "FRONT" front)
-    (log/debug! "WAITING FOR" (flow/missing-data flow complete))
+    (log-debug-if! "COMPLETE KEYS" (sort complete))
+    (log-debug-if! "FRONT" front)
+    (log-debug-if! "WAITING FOR" (flow/missing-data flow complete))
     (if (empty? front)
       (let [missing (missing-data flow (:data status))]
         (log/debug! "empty front - missing" missing)
@@ -167,7 +179,7 @@
 (defn executor-events!
   [{:keys [workflow status flow] :as state}
    executor topic event]
-  (log/debug! "EXECUTOR EVENT" workflow event)
+  (log/debug! "WORKER EVENT" (:event event) "for" (name workflow) event)
   (condp = (:event event)
 
     "step-complete"
@@ -194,7 +206,7 @@
     "container-exit"
     ()
 
-    (log/warn! "UNKNOWN EVENT" (:event event))))
+    (log/warn! "UNKNOWN WORKER EVENT" (:event event))))
 
 (defn initial-key
   [key]
@@ -211,7 +223,9 @@
 
 (defn cancel-tasks!
   [status executor canceling]
-  (log/info! "CANCELING" canceling)
+  ; TODO(jerry): Prune to existing tasks before logging.
+  ; TODO(jerry): Does `canceling` contain strings or keywords?
+  (log-info-if! "CANCELING" canceling)
   (doseq [key canceling]
     (let [cancel (get-in @status [:tasks key])]
       (executor/cancel! executor (:id cancel))))
@@ -249,16 +263,16 @@
         {:keys [data step] :as down} (flow/find-descendants now expiring)
         tasks (:tasks @status)
         targets (target-tasks tasks step)]
-    (log/debug! "DESCENDANTS" down)
+    (log-debug-if! "DESCENDANTS" down)
     (cancel-tasks! status executor step)
-    (log/debug! "TASKS" tasks)
+    (log-debug-if! "TASKS" tasks)
     (swap!
      status
      (comp
       (partial activate-front! state now executor @commands)
       (partial expunge-keys data)
       (partial find-existing store now)))
-    (log/debug! "EXPIRED" down)
+    (log-debug-if! "EXPIRED" down)
     down))
 
 (defn halt-flow!
@@ -297,7 +311,7 @@
 
 (defn merge-commands!
   [{:keys [flow commands status store] :as state} executor merging]
-  (log/debug! "COMMANDS" (keys merging))
+  (log-debug-if! "COMMANDS" (keys merging))
   (swap! commands merge merging)
   (try
     (expire-commands! state executor (keys merging))
