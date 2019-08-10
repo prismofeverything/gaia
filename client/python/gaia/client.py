@@ -4,6 +4,8 @@ import os
 import sys
 import json
 import yaml
+import pprint
+import argparse
 import requests
 from typing import Dict, List, Optional
 import multiprocessing
@@ -113,4 +115,28 @@ class Gaia(object):
 
 
 if __name__ == '__main__':
-    print(sys.argv)
+	parser = argparse.ArgumentParser()
+	pp = pprint.PrettyPrinter(indent=4)
+	parser.add_argument(
+		'command',
+		help='gaia command to perform')
+	parser.add_argument(
+		'workflow',
+		help='name of workflow to operate on')
+	parser.add_argument(
+		'--host',
+		default='localhost:24442',
+		help='address for gaia host')
+	args = parser.parse_args()
+
+	flow = Gaia({
+		'gaia_host': args.host})
+	if args.command == 'status':
+		status = flow.status(args.workflow)
+		output = status
+		output = {
+			'steps': status['status']['tasks'],
+			'state': status['status']['state'],
+			'waiting': status['status']['waiting']}
+
+	pp.pprint(output)
