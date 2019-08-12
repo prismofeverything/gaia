@@ -38,7 +38,7 @@
        :tasks {}})}))
 
 (def running-states
-  #{:running :error})
+  #{:running :error :exception})
 
 (defn find-running
   [tasks]
