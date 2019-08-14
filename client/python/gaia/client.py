@@ -129,16 +129,16 @@ class Gaia(object):
         pool.map(launch_sisyphus, names)
 
     def pull_inputs(self, workflow, task_name, root=None, path_fn=pop_path):
-        # type: (str, str, Optional[str], Callable[[str], None]) -> None
-		"""
-		Pull the inputs for a given task. Also prints the command afterwards.
+        # type: (str, str, Optional[str], Callable[[str], str]) -> None
+        """
+        Pull the inputs for a given task. Also prints the command afterwards.
 
-		Args:
-		    workflow (str): name of the workflow.
-		    task_name (str): name of the task we want inputs for.
-		    root (str): root of the path to sync files to locally.
-		    path_fn (callable[str]): function to call on the task path before using locally.
-		"""
+        Args:
+            workflow: name of the workflow.
+            task_name: name of the task we want inputs for.
+            root: root of the path to sync files to locally.
+            path_fn: function to call on the task path before using locally.
+        """
         tasks = self.status(workflow)['status']['tasks']
         if task_name in tasks:
             task = tasks[task_name]
