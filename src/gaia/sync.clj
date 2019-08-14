@@ -228,16 +228,17 @@
   [status executor canceling]
   ; TODO(jerry): Prune to existing tasks before logging.
   ; TODO(jerry): Does `canceling` contain strings or keywords?
-  (log-info-if! "CANCELING" canceling)
-  (doseq [key canceling]
-    (let [cancel (get-in @status [:tasks key])]
-      (executor/cancel! executor (:id cancel))))
-  (swap!
-   status
-   update
-   :tasks
-   dissoc-seq
-   canceling))
+  (let [found (select-keys (:tasks @status) canceling)]
+    (doseq [[key task] found]
+      (when (= (:state task) :running)
+        (log-info-if! "CANCELING" key)
+        (executor/cancel! executor (:id task))))
+    (swap!
+     status
+     update
+     :tasks
+     dissoc-seq
+     (keys found))))
 
 (defn find-existing
   [store flow status]

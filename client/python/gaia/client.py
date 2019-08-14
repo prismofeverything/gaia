@@ -138,6 +138,12 @@ class Gaia(object):
             task_name: name of the task we want inputs for.
             root: root of the path to sync files to locally.
             path_fn: function to call on the task path before using locally.
+
+        Example:
+            flow.pull_inputs(
+                'WCM_mialydefelice_20190812.122845',
+                'simulation_Var0_Seed57_Gen19_Cell0',
+                root='/home/spanglry/Code/wcEcoli')
         """
         tasks = self.status(workflow)['status']['tasks']
         if task_name in tasks:
