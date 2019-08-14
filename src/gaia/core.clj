@@ -173,7 +173,7 @@
   (fn [request]
     (let [{:keys [workflow steps] :as body} (read-json (:body request))
           workflow (keyword workflow)]
-      (log/info! "merge request" body)
+      (log/info! "merge steps request" body)
       (merge-steps! state workflow steps)
       (response
        {:steps {workflow (map :name steps)}}))))
