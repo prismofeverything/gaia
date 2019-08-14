@@ -7,7 +7,7 @@ import yaml
 import pprint
 import argparse
 import requests
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 import multiprocessing
 
 
@@ -31,7 +31,7 @@ def step(name, command, inputs, outputs, var=()):
 
     return out
 
-def togs(key):
+def to_gs(key):
     parts = key.split(':')
     bucket = parts[0]
     path = ':'.join(parts[1:])
@@ -129,11 +129,21 @@ class Gaia(object):
         pool.map(launch_sisyphus, names)
 
     def pull_inputs(self, workflow, task_name, root=None, path_fn=pop_path):
+        # type: (str, str, Optional[str], Optional[Callable[[str], None]]) -> None
+		"""
+		Pull the inputs for a given task. Also prints the command afterwards.
+
+		Args:
+		    workflow (str): name of the workflow.
+		    task_name (str): name of the task we want inputs for.
+		    root (str): root of the path to sync files to locally.
+		    path_fn (callable[str]): function to call on the task path before using locally.
+		"""
         tasks = self.status(workflow)['status']['tasks']
         if task_name in tasks:
             task = tasks[task_name]
             for key, full_path in task['inputs']:
-                gs = togs(key)
+                gs = to_gs(key)
                 path = path_fn(full_path)
                 if root:
                     path = os.path.join(root, path)
