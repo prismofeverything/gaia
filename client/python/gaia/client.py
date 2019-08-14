@@ -129,7 +129,7 @@ class Gaia(object):
         pool.map(launch_sisyphus, names)
 
     def pull_inputs(self, workflow, task_name, root=None, path_fn=pop_path):
-        # type: (str, str, Optional[str], Optional[Callable[[str], None]]) -> None
+        # type: (str, str, Optional[str], Callable[[str], None]) -> None
 		"""
 		Pull the inputs for a given task. Also prints the command afterwards.
 
