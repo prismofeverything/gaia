@@ -31,6 +31,21 @@ def step(name, command, inputs, outputs, var=()):
 
     return out
 
+def togs(key):
+    parts = key.split(':')
+    bucket = parts[0]
+    path = ':'.join(parts[1:])
+    return 'gs://{}/{}'.format(bucket, path)
+
+def pop_path(path):
+    if path == '':
+        return path
+
+    parts = path.split('/')
+    if parts[0] == '':
+        parts = parts[1:]
+
+    return '/'.join(parts[1:])
 
 def launch_sisyphus(key):
     command = os.path.join("script", "launch-sisyphus.sh")
@@ -113,30 +128,44 @@ class Gaia(object):
         pool = multiprocessing.Pool(10)
         pool.map(launch_sisyphus, names)
 
+    def pull_inputs(self, workflow, task_name, root=None, path_fn=pop_path):
+        tasks = self.status(workflow)['status']['tasks']
+        if task_name in tasks:
+            task = tasks[task_name]
+            for key, full_path in task['inputs']:
+                gs = togs(key)
+                path = path_fn(full_path)
+                if root:
+                    path = os.path.join(root, path)
+
+                os.system('mkdir -p {}'.format(path))
+                os.system('gsutil -m rsync -r {} {}'.format(gs, path))
+            print(' '.join(task['command']))
+
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser()
-	pp = pprint.PrettyPrinter(indent=4)
-	parser.add_argument(
-		'command',
-		help='gaia command to perform')
-	parser.add_argument(
-		'workflow',
-		help='name of workflow to operate on')
-	parser.add_argument(
-		'--host',
-		default='localhost:24442',
-		help='address for gaia host')
-	args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    pp = pprint.PrettyPrinter(indent=4)
+    parser.add_argument(
+        'command',
+        help='gaia command to perform')
+    parser.add_argument(
+        'workflow',
+        help='name of workflow to operate on')
+    parser.add_argument(
+        '--host',
+        default='localhost:24442',
+        help='address for gaia host')
+    args = parser.parse_args()
 
-	flow = Gaia({
-		'gaia_host': args.host})
-	if args.command == 'status':
-		status = flow.status(args.workflow)
-		output = status
-		output = {
-			'steps': status['status']['tasks'],
-			'state': status['status']['state'],
-			'waiting': status['status']['waiting']}
+    flow = Gaia({
+        'gaia_host': args.host})
+    if args.command == 'status':
+        status = flow.status(args.workflow)
+        output = status
+        output = {
+            'steps': status['status']['tasks'],
+            'state': status['status']['state'],
+            'waiting': status['status']['waiting']}
 
-	pp.pprint(output)
+    pp.pprint(output)
