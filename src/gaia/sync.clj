@@ -182,6 +182,9 @@
   (log/debug! "WORKER EVENT" (:event event) "for" (name workflow) event)
   (condp = (:event event)
 
+    "step-start"
+    ()
+
     "step-complete"
     (step-state! state event :complete)
 
