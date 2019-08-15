@@ -1,5 +1,6 @@
 (ns gaia.cloud
   (:require
+   [clojure.set :as set]
    [clojure.string :as string]
    [sisyphus.cloud :as cloud]
    [gaia.store :as store])
@@ -39,14 +40,22 @@
        (str bucket ":" (.getName x)))
      (.iterateAll blobs))))
 
+;; (defn partition-keys
+;;   [storage data]
+;;   (group-by
+;;    (fn [key]
+;;      (let [[bucket path] (split-path key)
+;;            blobs (attain-list storage bucket path)]
+;;        (not (.isEmpty (.getValues blobs)))))
+;;    data))
+
 (defn partition-keys
   [storage data]
-  (group-by
-   (fn [key]
-     (let [[bucket path] (split-path key)
-           blobs (attain-list storage bucket path)]
-       (not (.isEmpty (.getValues blobs)))))
-   data))
+  (let [root (store/common-root data)
+        [bucket path] (split-path root)
+        data-set (set data)
+        listing (set (list-directory storage bucket path))]
+    [(set/intersection data-set listing) (set/difference data-set listing)]))
 
 (deftype CloudStore [storage container]
   store/Store
@@ -57,8 +66,9 @@
   (protocol [store] "")
   (partition-data
     [store data]
-    (let [result (partition-keys storage data)]
-      [(get result true) (get result false)]))
+    (partition-keys store data))
+    ;; (let [result (partition-keys storage data)]
+    ;;   [(get result true) (get result false)])
   (existing-keys
     [store root]
     (let [[bucket path] (split-path root)]

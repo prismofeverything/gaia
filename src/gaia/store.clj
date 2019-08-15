@@ -30,6 +30,21 @@
   (let [dir (io/file (dir-for path))]
     (.mkdirs dir)))
 
+(defn common-root
+  [keys]
+  (let [order (sort keys)
+        begin (first order)
+        end (last order)
+        strand (map vector begin end)]
+    (apply
+     str
+     (map
+      first
+      (take-while
+       (fn [[a o]]
+         (= a o))
+       strand)))))
+
 (defprotocol Store
   (present? [store key])
   (protocol [store])
