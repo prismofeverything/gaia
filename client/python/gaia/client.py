@@ -177,6 +177,11 @@ if __name__ == '__main__':
         type=str,
         default='',
         help='Path to input files, with file prefix')
+    parser.add_argument(
+        '--workers',
+        type=int,
+        default=0,
+        help='number of workers to launch')
     args = parser.parse_args()
 
     flow = Gaia({
@@ -202,3 +207,7 @@ if __name__ == '__main__':
 
         flow.command(args.workflow, commands)
         flow.merge(args.workflow, steps)
+
+    elif args.command == 'launch':
+        workers = ['{}-{}'.format(args.workflow, i) for i in range(args.workers)]
+        flow.launch(workers)
