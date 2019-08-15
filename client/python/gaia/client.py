@@ -172,10 +172,16 @@ if __name__ == '__main__':
         '--host',
         default='localhost:24442',
         help='address for gaia host')
+    parser.add_argument(
+        '--path',
+        type=str,
+        default='',
+        help='Path to input files, with file prefix')
     args = parser.parse_args()
 
     flow = Gaia({
         'gaia_host': args.host})
+
     if args.command == 'status':
         status = flow.status(args.workflow)
         output = status
@@ -183,5 +189,16 @@ if __name__ == '__main__':
             'steps': status['status']['tasks'],
             'state': status['status']['state'],
             'waiting': status['status']['waiting']}
+        pp.pprint(output)
 
-    pp.pprint(output)
+    elif args.command == 'merge':
+        if not args.path:
+            print('No --path specified')
+        commands = json.load(open('{}-commands.json'.format(args.path)))
+        steps = json.load(open('{}-steps.json'.format(args.path)))
+
+        print(commands)
+        print(steps)
+
+        flow.command(args.workflow, commands)
+        flow.merge(args.workflow, steps)
