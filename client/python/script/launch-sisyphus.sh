@@ -8,7 +8,8 @@ gcloud compute \
        --project=$PROJECT \
        instances create $FULL_NAME \
        --zone=us-west1-b \
-       --machine-type=n1-standard-2 \
+       --custom-cpu=4 \
+       --custom-memory=16 \
        --subnet=default \
        --network-tier=PREMIUM \
        --maintenance-policy=MIGRATE \

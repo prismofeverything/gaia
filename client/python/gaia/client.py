@@ -208,6 +208,11 @@ if __name__ == '__main__':
         flow.command(args.workflow, commands)
         flow.merge(args.workflow, steps)
 
+    elif args.command == 'expire':
+        if not args.path:
+            print('No --path specified')
+        flow.expire(args.workflow, [args.path])
+
     elif args.command == 'launch':
         workers = ['{}-{}'.format(args.workflow, i) for i in range(args.workers)]
         flow.launch(workers)
