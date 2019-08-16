@@ -68,7 +68,7 @@
     [store data]
     ;; (partition-keys store data))
     (let [result (partition-keys storage data)]
-      [(get result true) (get result false)])
+      [(get result true) (get result false)]))
   (existing-keys
     [store root]
     (let [[bucket path] (split-path root)]
