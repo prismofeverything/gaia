@@ -14,6 +14,9 @@
 
 - name: sim
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  vars:
+    length-sec: "300"
+    seed: "0"
   inputs:
     sim-data: "/wcEcoli/out/sim/kb/"
   outputs:
@@ -24,8 +27,10 @@
     - "-u"
     - "runscripts/manual/runSim.py"
     - "sim"
-    - "--length_sec"
-    - "300"
+    - "--seed"
+    - "{{seed}}"
+    - "--length-sec"
+    - "{{length-sec}}"
 
 - name: analysis
   image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
