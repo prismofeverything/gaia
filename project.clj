@@ -1,4 +1,4 @@
-(defproject gaia "0.0.14"
+(defproject gaia "0.0.15"
   :description "regenerating dependency network"
   :url "http://github.com/prismofeverything/gaia"
   :license {:name "MIT"
@@ -13,6 +13,6 @@
                  [ubergraph "0.5.2"]
                  [protograph "0.0.19"]
                  [polaris "0.0.19"]
-                 [sisyphus "0.0.14"]
+                 [sisyphus "0.0.15"]
                  [com.google.guava/guava "23.6-jre"]
                  [org.javaswift/joss "0.9.17"]])
