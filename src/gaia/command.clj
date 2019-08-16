@@ -40,16 +40,16 @@
     template)))
 
 (defn generate-binding
-  [step step output global]
+  [step inner output global]
   (str
    "composite/"
    step "/"
-   step "/"
+   inner "/"
    output ":"
    global))
 
 (defn generate-outputs
-  [step outputs step]
+  [step outputs inner]
   (reduce
    (fn [all [key template]]
      (if (get-in step [:outputs (keyword template)])
@@ -59,25 +59,25 @@
         (keyword template)
         (generate-binding
          (:name step)
-         (:name step)
+         (:name inner)
          (name key)
          template))))
-   outputs (:outputs step)))
+   outputs (:outputs inner)))
 
 (declare apply-composite)
 
 (defn apply-step
-  [commands step vars inputs outputs {:keys [name command] :as step}]
-  (let [ovars (template/evaluate-map (:vars step) vars)
-        oin (substitute-values (:inputs step) inputs)
-        oout (substitute-values (:outputs step) outputs)
-        inner {:name (str (:name step) ":" name)
-               :command command
-               :vars ovars
-               :inputs oin
-               :outputs oout}
+  [commands step vars inputs outputs {:keys [name command] :as inner}]
+  (let [ovars (template/evaluate-map (:vars inner) vars)
+        oin (substitute-values (:inputs inner) inputs)
+        oout (substitute-values (:outputs inner) outputs)
+        down {:name (str (:name step) ":" name)
+              :command command
+              :vars ovars
+              :inputs oin
+              :outputs oout}
         exec (get commands (keyword command))]
-    (apply-composite commands exec inner)))
+    (apply-composite commands exec down)))
 
 (defn apply-composite
   [commands {:keys [vars inputs outputs steps] :as command} step]
