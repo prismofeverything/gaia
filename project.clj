@@ -11,7 +11,7 @@
                  [aleph "0.4.6"]
                  [clj-http "3.10.0"]
                  [ubergraph "0.5.2"]
-                 [protograph "0.0.22"]
+                 [protograph "0.0.23"]
                  [polaris "0.0.19"]
                  [sisyphus "0.0.15"]
                  [com.google.guava/guava "23.6-jre"]

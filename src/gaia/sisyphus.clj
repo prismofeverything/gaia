@@ -23,6 +23,10 @@
    (partial find-xput step command vars x)
    (keys (get command x))))
 
+(defn evaluate-template
+  [template env]
+  (template/evaluate-template template env))
+
 (defn step->task
   [step command]
   (let [vars (walk/stringify-keys (merge (:vars command) (:vars step)))
@@ -34,7 +38,7 @@
      :name (:name step)
      :workflow (:workflow step "gaia")
      :image (:image command)
-     :command (map #(template/evaluate-template % all-vars) (:command command))
+     :command (map #(evaluate-template % all-vars) (:command command))
      :inputs inputs
      :outputs outputs}))
 
