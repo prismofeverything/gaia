@@ -9,7 +9,7 @@ gcloud compute \
        instances create $FULL_NAME \
        --zone=us-west1-b \
        --custom-cpu=4 \
-       --custom-memory=16 \
+       --custom-memory=20 \
        --subnet=default \
        --network-tier=PREMIUM \
        --maintenance-policy=MIGRATE \
