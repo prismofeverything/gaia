@@ -4,12 +4,14 @@ NAME=$1
 FULL_NAME=sisyphus-$NAME
 PROJECT=allen-discovery-center-mcovert
 
+#       --custom-cpu=6 \
+#       --custom-memory=32 \
+
 gcloud compute \
        --project=$PROJECT \
        instances create $FULL_NAME \
        --zone=us-west1-b \
-       --custom-cpu=4 \
-       --custom-memory=20 \
+       --machine-type=n1-standard-2 \
        --subnet=default \
        --network-tier=PREMIUM \
        --maintenance-policy=MIGRATE \
