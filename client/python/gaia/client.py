@@ -178,6 +178,11 @@ if __name__ == '__main__':
         default='',
         help='Path to input files, with file prefix')
     parser.add_argument(
+        '--extension',
+        type=str,
+        default='json',
+        help='extension for input files')
+    parser.add_argument(
         '--workers',
         type=int,
         default=0,
@@ -199,8 +204,12 @@ if __name__ == '__main__':
     elif args.command == 'merge':
         if not args.path:
             print('No --path specified')
-        commands = json.load(open('{}-commands.json'.format(args.path)))
-        steps = json.load(open('{}-steps.json'.format(args.path)))
+        if args.extension == 'json':
+            commands = json.load(open('{}.commands.json'.format(args.path)))
+            steps = json.load(open('{}.steps.json'.format(args.path)))
+        elif args.extension == 'yaml':
+            commands = load_yaml('{}.commands.yaml'.format(args.path))
+            steps = load_yaml('{}.steps.yaml'.format(args.path))
 
         print(commands)
         print(steps)
