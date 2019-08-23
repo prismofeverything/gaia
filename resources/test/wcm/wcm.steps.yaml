@@ -1,41 +1,41 @@
 - name: test-parca
   command: parca
   outputs:
-    sim-data: "sisyphus:data/wcm/gaia/test/sim-data"
+    sim-data: "sisyphus:data/wcm/gaia/test/sim-data/"
 
 - name: test-sim
   command: sim
   inputs:
-    sim-data: "sisyphus:data/wcm/gaia/test/sim-data"
+    sim-data: "sisyphus:data/wcm/gaia/test/sim-data/"
   outputs:
-    sim-out: "sisyphus:data/wcm/gaia/test/sim-out"
-    metadata: "sisyphus:data/wcm/gaia/test/metadata"
+    sim-out: "sisyphus:data/wcm/gaia/test/sim-out/"
+    metadata: "sisyphus:data/wcm/gaia/test/metadata/"
 
 - name: test-analysis
   command: analysis
   inputs:
-    sim-out: "sisyphus:data/wcm/gaia/test/sim-out"
-    metadata: "sisyphus:data/wcm/gaia/test/metadata"
+    sim-out: "sisyphus:data/wcm/gaia/test/sim-out/"
+    metadata: "sisyphus:data/wcm/gaia/test/metadata/"
   outputs:
-    plot-out: "sisyphus:data/wcm/gaia/test/plot-out"
+    plot-out: "sisyphus:data/wcm/gaia/test/plot-out/"
 
 - name: again-parca
   command: parca
   outputs:
-    sim-data: "sisyphus:data/wcm/gaia/again/sim-data"
+    sim-data: "sisyphus:data/wcm/gaia/again/sim-data/"
 
 - name: again-sim
   command: sim
   inputs:
-    sim-data: "sisyphus:data/wcm/gaia/again/sim-data"
+    sim-data: "sisyphus:data/wcm/gaia/again/sim-data/"
   outputs:
-    sim-out: "sisyphus:data/wcm/gaia/again/sim-out"
-    metadata: "sisyphus:data/wcm/gaia/again/metadata"
+    sim-out: "sisyphus:data/wcm/gaia/again/sim-out/"
+    metadata: "sisyphus:data/wcm/gaia/again/metadata/"
 
 - name: again-analysis
   command: analysis
   inputs:
-    sim-out: "sisyphus:data/wcm/gaia/again/sim-out"
-    metadata: "sisyphus:data/wcm/gaia/again/metadata"
+    sim-out: "sisyphus:data/wcm/gaia/again/sim-out/"
+    metadata: "sisyphus:data/wcm/gaia/again/metadata/"
   outputs:
-    plot-out: "sisyphus:data/wcm/gaia/again/plot-out"
+    plot-out: "sisyphus:data/wcm/gaia/again/plot-out/"

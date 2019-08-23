@@ -1,7 +1,7 @@
 # these are the commands for the simplified runscripts
 
 - name: parca
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   vars: {}
   inputs: {}
   outputs:
@@ -13,7 +13,7 @@
     - "parca"
 
 - name: sim
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   vars:
     length-sec: "300"
     seed: "0"
@@ -33,7 +33,7 @@
     - "{{length-sec}}"
 
 - name: analysis
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   inputs:
     sim-out: "/wcEcoli/out/analysis/wildtype_000000/"
     metadata: "/wcEcoli/out/analysis/metadata/"
@@ -48,7 +48,7 @@
 # these are the commands for the full wcm workflow 
 
 - name: init-raw-data
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   inputs: {}
   outputs:
     raw-data: "/wcEcoli/raw_data.cPickle"
@@ -62,7 +62,7 @@
     - "/wcEcoli/raw_data.cPickle"
 
 - name: init-raw-validation-data
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   inputs: {}
   outputs:
     raw-validation-data: "/wcEcoli/raw_validation_data.cPickle"
@@ -76,7 +76,7 @@
     - "/wcEcoli/raw_validation_data.cPickle"
 
 - name: init-validation-data
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   inputs:
     raw-data: "/wcEcoli/raw_data.cPickle"
     raw-validation-data: "/wcEcoli/raw_validation_data.cPickle"
@@ -96,7 +96,7 @@
     - "/wcEcoli/validation_data.cPickle"
 
 - name: fit-sim-data
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   vars:
     cpus: 1
     disable-ribosome-fitting: "False"
@@ -123,7 +123,7 @@
     - "/wcEcoli/sim_data.cPickle"
   
 - name: variant-sim-data
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   vars:
     variant-function: "wildtype"
     variant-index: 0
@@ -150,7 +150,7 @@
     - "/wcEcoli/output_sim_data.cPickle"
 
 - name: simulation
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   vars:
     sim-index: "000000"
     variant-function: "wildtype"
@@ -188,7 +188,7 @@
     - "{{sim-out}}"
 
 - name: simulation-daughter
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   vars:
     sim-index: "000000"
     variant-function: "wildtype"
@@ -230,7 +230,7 @@
     - "{{sim-out}}"
 
 - name: analysis-single
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   vars:
     metadata: "{}"
   inputs:
@@ -257,7 +257,7 @@
     - "'{{metadata}}'"
 
 - name: analysis-multigen
-  image: gcr.io/allen-discovery-center-mcovert/wcm-code:latest
+  image: gcr.io/allen-discovery-center-mcovert/spanglry-wcm-code:latest
   vars:
     metadata: "{}"
   inputs:

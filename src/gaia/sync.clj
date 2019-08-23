@@ -242,10 +242,15 @@
 
 (defn find-existing
   [store flow status]
-  (let [data (flow/data-nodes flow)
-        [complete missing] (store/partition-data store data)
-        existing (into {} (map initial-key complete))]
-    (assoc status :data existing)))
+  (let [data (flow/data-nodes flow)]
+    (log/debug! "DATA" data)
+    (if (empty? data)
+      status
+      (let [[complete missing] (store/partition-data store data)
+            existing (into {} (map initial-key complete))]
+        (log/debug! "EXISTING" existing)
+        (log/debug! "ABSENT" (set/difference (set data) (set (keys existing))))
+        (assoc status :data existing)))))
 
 (defn run-flow!
   [{:keys [workflow flow commands store status] :as state} executor]
