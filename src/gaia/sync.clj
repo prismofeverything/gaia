@@ -302,9 +302,13 @@
 
 (defn merge-steps!
   [{:keys [flow commands status store] :as state} executor steps]
+  (log/debug! "TRANSFORMING" (count steps) "STEPS")
   (let [transform (command/transform-steps @commands steps)]
+    (log/debug! "CANCELING EXISTING TASKS")
     (cancel-tasks! status executor (keys transform))
+    (log/debug! "MERGING" (count transform) "STEPS")
     (swap! flow #(flow/merge-steps % (vals transform)))
+    (log/debug! "LOOKING FOR EXISTING DATA")
     (let [now @flow]
       (swap!
        status
