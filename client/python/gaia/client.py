@@ -220,7 +220,8 @@ if __name__ == '__main__':
     elif args.command == 'expire':
         if not args.path:
             print('No --path specified')
-        flow.expire(args.workflow, [args.path])
+        keys = args.path.split(',')
+        flow.expire(args.workflow, keys)
 
     elif args.command == 'launch':
         workers = ['{}-{}'.format(args.workflow, i) for i in range(args.workers)]
