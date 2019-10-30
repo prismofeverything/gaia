@@ -40,7 +40,8 @@
      :image (:image command)
      :command (map #(evaluate-template % all-vars) (:command command))
      :inputs inputs
-     :outputs outputs}))
+     :outputs outputs
+     :timeout (:timeout step)}))
 
 (defn submit-task!
   [{:keys [rabbit]} commands step]

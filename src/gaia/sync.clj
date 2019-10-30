@@ -197,6 +197,9 @@
     "data-complete"
     (data-complete! state executor event)
 
+    "step-terminated"
+    ()
+
     "container-create"
     ()
 
@@ -243,7 +246,7 @@
 (defn find-existing
   [store flow status]
   (let [data (flow/data-nodes flow)]
-    (log/debug! "DATA" data)
+    ; (log/debug! "DATA" data)  ; "clojure.lang.LazySeq@a96b6ad4"
     (if (empty? data)
       status
       (let [[complete missing] (store/partition-data store data)
