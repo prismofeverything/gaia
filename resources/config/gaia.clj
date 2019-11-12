@@ -13,7 +13,8 @@
 
  :executor
  {:target "sisyphus"
-  :path ""}
+  :path ""
+  :rabbit {}}
 
  :store
  {:type :cloud

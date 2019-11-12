@@ -47,7 +47,9 @@
   [{:keys [rabbit]} commands step]
   (let [command (get commands (keyword (:command step)))
         task (step->task step command)]
-    (rabbit/publish! rabbit task)
+    (rabbit/publish!
+     (assoc rabbit :routing-key (:workflow task))
+     task)
     (assoc task :state :running)))
 
 (defn cancel-task!
@@ -68,6 +70,8 @@
     (cancel-task! sisyphus id)))
 
 (defn load-sisyphus-executor
-  "required keys are :rabbit and :kafka"
+  "Required keys are :rabbit and :kafka. Replaces configuration under :rabbit key
+  with rabbitmq connection map from `sisyphus.rabbit`."
   [config]
-  (SisyphusExecutor. config))
+  (let [rabbit (rabbit/connect! (:rabbit config))]
+    (SisyphusExecutor. (assoc config :rabbit rabbit))))

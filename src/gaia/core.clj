@@ -12,7 +12,6 @@
    [polaris.core :as polaris]
    [sisyphus.kafka :as kafka]
    [sisyphus.log :as log]
-   [sisyphus.rabbit :as rabbit]
    [gaia.config :as config]
    [gaia.store :as store]
    [gaia.executor :as executor]
@@ -85,17 +84,14 @@
   [config]
   (let [flows (atom {})
         store (config/load-store (:store config))
-        rabbit (rabbit/connect! (:rabbit config))
         kafka (:kafka config)
         producer (kafka/boot-producer kafka)
         kafka (assoc kafka :producer producer)
         exec-config (assoc
                      (:executor config)
-                     :kafka kafka
-                     :rabbit rabbit)
+                     :kafka kafka)
         executor (config/load-executor exec-config)
         state {:config config
-               :rabbit rabbit
                :kafka kafka
                :flows flows
                :store store
