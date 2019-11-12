@@ -2,6 +2,7 @@
   (:require
    [clojure.walk :as walk]
    [protograph.template :as template]
+   [sisyphus.cloud :as cloud]
    [sisyphus.kafka :as kafka]
    [sisyphus.rabbit :as rabbit]
    [gaia.executor :as executor]))
@@ -60,6 +61,14 @@
    {:event "terminate"
     :id id}))
 
+(defn find-instances
+  [{:keys [compute project zone]} filters]
+  (cloud/list-instances
+   compute project zone
+   (if (empty? filters)
+     {}
+     {:filters filters})))
+
 (deftype SisyphusExecutor [sisyphus]
   executor/Executor
   (submit!
@@ -73,5 +82,10 @@
   "Required keys are :rabbit and :kafka. Replaces configuration under :rabbit key
   with rabbitmq connection map from `sisyphus.rabbit`."
   [config]
-  (let [rabbit (rabbit/connect! (:rabbit config))]
-    (SisyphusExecutor. (assoc config :rabbit rabbit))))
+  (let [rabbit (rabbit/connect! (:rabbit config))
+        compute (cloud/create-compute-service)]
+    (SisyphusExecutor.
+     (assoc
+      config
+      :rabbit rabbit
+      :compute compute))))

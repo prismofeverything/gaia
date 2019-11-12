@@ -12,8 +12,7 @@ then
     FULL_METADATA=$FULL_METADATA,$METADATA
 fi
 
-      --custom-cpu=6 \
-      --custom-memory=32 \
+echo $FULL_METADATA
 
 gcloud compute \
        --project=$PROJECT \
@@ -32,3 +31,8 @@ gcloud compute \
        --boot-disk-device-name=$FULL_NAME \
        --description='sisyphus worker' \
        --metadata=$FULL_METADATA
+
+# additional parameters --------------------
+      # --custom-cpu=6 \
+      # --custom-memory=32 \
+
