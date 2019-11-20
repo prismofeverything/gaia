@@ -13,6 +13,6 @@
                  [ubergraph "0.5.2"]
                  [protograph "0.0.23"]
                  [polaris "0.0.19"]
-                 [sisyphus "0.0.17"]
+                 [sisyphus "0.0.20"]
                  [com.google.guava/guava "28.0-jre"]
                  [org.javaswift/joss "0.9.17"]])
