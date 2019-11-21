@@ -48,8 +48,9 @@
   [{:keys [rabbit]} commands step]
   (let [command (get commands (keyword (:command step)))
         task (step->task step command)]
+    (log/debug! "TASK: " task)
     (rabbit/publish!
-     (assoc rabbit :routing-key (:workflow task))
+     (assoc rabbit :routing-key (name (:workflow task)))
      task)
     (assoc task :state :running)))
 
