@@ -66,25 +66,40 @@ config = {'gaia_host': 'localhost:24442'}
 flow = gaia.Gaia(config)
 ```
 
-Now that we have a reference to the client, we can call these methods to operate on a named workflow:
+Now that we have a reference to the client, we can call these methods:
 
-* command - see what Commands are available and add new Commands
-* merge - update or add new Steps
+* workflows - list current workflows with summary information about each one
+* upload - upload a new workflow
+* command - see what Commands are in a workflow and add new Commands
+* merge - update or add new Steps to a workflow
 * run - recompute dependencies and run outstanding Steps
 * halt - stop a running workflow
 * status - find out all information about a given workflow
 * expire - recompute the given storage keys and Steps and all their dependent Steps
 
-To just get something going, run the workflow in WCM:
+### workflows
+
+The `workflows` method lists the current workflows with summary info about each one.
+
+```python
+flow.workflows()
+```
+
+### upload
+
+To get something running, upload a test workflow:
 
 ```
 commands = gaia.load_yaml('../../resources/test/wcm/wcm.commands.yaml')
-wcm = gaia.load_yaml('../../resources/test/wcm/wcm.processes.yaml')
-flow.command('wcm', commands)
-flow.merge('wcm', wcm)
+steps = gaia.load_yaml('../../resources/test/wcm/wcm.processes.yaml')
+flow.upload('crick_wcm_20191130.121500', dict(owner='crick'), commands, steps)
 ```
 
-You will also need to launch some sisyphus workers. To do that:
+Each workflow needs a unique name. Best practice is to construct a name in the
+form `owner_program_datetime`.
+
+You will also need to launch some sisyphus workers. To do that
+[Note: This part is in flux]:
 
 ```
 flow.launch(['a', 'b'])
@@ -97,7 +112,7 @@ They will deallocate 5 minutes after finishing their last Steps.
 
 Commands are the base level operations that can be run, specifically: command line programs in a given docker container image. Once defined, a Command can be invoked any number of times with a new set of vars, inputs, and outputs.
 
-If you call this method with an empty or absent array argument, it will return all Commands in the named workflow.
+If you call this method with an empty or absent array argument, it will just return the Commands in the named workflow.
 
 ```
 flow.command('biostream')
@@ -141,7 +156,7 @@ Each Step is a dictionary with the following keys:
 * outputs - map of output keys from the Command to keys in the data store to write the output files after successfully invoking the Command
 * vars - map of var keys to values. If this is an array it will create a Step for each element in the array with the given value
 
-If this is a Step with a name that hasn't been seen before, it will create the Step entry and trigger the computation of outputs if the required inputs are available in the data store.  If the `key` of the Step being merged already exists in the workflow, that Step will be updated and recomputed, along with all Steps that depend on outputs from the updated Step in that workflow.
+If this is a Step with a name that hasn't been seen before, it will create the Step entry and trigger the computation of outputs if the required inputs are available in the data store.  If the `name` of the Step being merged already exists in the workflow, that Step will be updated and recomputed, along with all Steps that depend on outputs from the updated Step in that workflow.
 
 ### run
 
@@ -153,7 +168,7 @@ flow.run('biostream')
 
 ### halt
 
-The 'halt' method is the inverse of the 'run' method. It will immediately cancel all running tasks and stop the computation in the given workflow:
+The `halt` method is the inverse of the `run` method. It will immediately cancel all running tasks and stop the computation in the given workflow:
 
 ```
 flow.halt('biostream')
@@ -161,7 +176,7 @@ flow.halt('biostream')
 
 ### status
 
-The `status` method provides information about a given workflow. There is a lot of information available, and it is formatted as a dictionary with these keys:
+The `status` method provides debugging information about a given workflow. There is a lot of information available. It's formatted as a dictionary with these keys:
 
 * state - a string representing the state of the overall workflow. Possible values are 'initialized', 'running', 'complete', 'halted', and 'error'.
 * flow - contains a representation of the Steps in the workflow as a bipartite graph: `step` and `data`. Each entry has a `from` field containing Step or data names it is dependent on and a `to` field containing all Step or data names dependent on it. 
@@ -174,12 +189,11 @@ flow.status('biostream')
 
 ### expire
 
-The `expire` method accepts a workflow and a list of Steps names and data names (storage keys). It makes those Steps and dependent Steps have to run again.
+The `expire` method accepts a workflow and a list of Steps names and/or storage paths (storage keys). It makes those Steps and their dependent Steps have to run again.
 
 ```
 flow.expire('biostream', ['ls-home', 'genomes', ...])
 ```
-
 
 ## server
 

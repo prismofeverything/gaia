@@ -65,7 +65,7 @@ class Gaia(object):
         return requests.post(url, data=data).json()
 
     def command(self, workflow, commands=None):
-        # type: (str, Optional[List[dict]]) -> Dict[Dict[dict]]
+        # type: (str, Optional[List[dict]]) -> dict
         """Add a list of Commands to the named workflow. Return a dict containing
         all of them, {'commands': {name: command, ...}}."""
         if commands is None:
@@ -78,7 +78,7 @@ class Gaia(object):
             'commands': commands})
 
     def merge(self, workflow, steps=None):
-        # type: (str, Optional[List[dict]]) -> List[dict]
+        # type: (str, Optional[List[dict]]) -> dict
         """Merge a list of Steps into the named workflow and start running the
         Steps that can run. Return a list of the workflow's Steps."""
         if steps is None:
@@ -90,15 +90,29 @@ class Gaia(object):
             'workflow': workflow,
             'steps': steps})
 
+    def upload(self, workflow, properties, commands, steps):
+        # type: (str, Dict[str, str], List[dict], List[dict]) -> dict
+        """Upload a new workflow. `properties` should include 'owner'."""
+        assert isinstance(workflow, str)
+        assert isinstance(properties, dict)
+        assert isinstance(commands, list)
+        assert isinstance(steps, list)
+
+        return self._post('upload', {
+            'workflow': workflow,
+            'properties': properties,
+            'commands': commands,
+            'steps': steps})
+
     def run(self, workflow):
-        # type: (str) -> None
+        # type: (str) -> dict
         """Start running the named workflow. Usually this happens automatically."""
         assert isinstance(workflow, str)
         return self._post('run', {
             'workflow': workflow})
 
     def halt(self, workflow):
-        # type: (str) -> None
+        # type: (str) -> dict
         """Stop running the named workflow."""
         assert isinstance(workflow, str)
         return self._post('halt', {
@@ -112,7 +126,7 @@ class Gaia(object):
             'workflow': workflow})
 
     def expire(self, workflow, keys):
-        # type: (str, List[str]) -> None
+        # type: (str, List[str]) -> dict
         """Expire outputs and downstream dependencies given storage keys and/or Step names."""
         assert isinstance(workflow, str)
         assert isinstance(keys, list), 'need a list of storage keys and/or Step names'
@@ -120,6 +134,11 @@ class Gaia(object):
         return self._post('expire', {
             'workflow': workflow,
             'expire': keys})
+
+    def workflows(self):
+        # type () -> dict
+        """List the current workflows, with summary info on each one."""
+        return self._post('workflows', {})
 
     def launch(self, names):
         # type: (List[str]) -> None

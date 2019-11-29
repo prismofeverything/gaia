@@ -36,7 +36,17 @@
    #(json/parse-string % keyword)
    (string/split (slurp path) #"\n")))
 
-(defn response
+(defn json-response
+  [body]
+  {:status 200
+   :headers {"content-type" "application/json"}
+   :body (json/generate-string body)})
+
+(defn dump-response
+  "Dump in-memory data structures into a JSON HTTP response, replacing each atom
+  with its value. This is OK for debugging but doesn't promise an API that
+  client code can depend on."
+  ; TODO(jerry): Switch to json-response except status-handler.
   [body]
   (let [deatomized (walk/postwalk
                     (fn [node]
@@ -44,9 +54,7 @@
                         @node
                         node))
                     body)]
-    {:status 200
-     :headers {"content-type" "application/json"}
-     :body (json/generate-string deatomized)}))
+    (json-response deatomized)))
 
 (defn index-handler
   [state]
@@ -56,11 +64,15 @@
      :body (slurp "resources/public/index.html")}))
 
 (defn initialize-flow!
+  "Construct the named workflow, connected to storage and kafka messaging."
   [{:keys [store kafka] :as state} workflow]
+  (when-not (seq (name workflow))
+    (throw (IllegalArgumentException. "empty workflow name")))
   (let [pointed (store (name workflow))]
     (sync/generate-sync workflow kafka pointed)))
 
 (defn find-flow!
+  "Find or construct the named workflow."
   [{:keys [flows] :as state} workflow]
   (if-let [flow (get @flows (keyword workflow))]
     flow
@@ -105,25 +117,34 @@
      [:kafka :consumer]
      (executor-status! state))))
 
+(defn merge-properties!
+  "Merge the new properties into the named workflow."
+  [state workflow properties]
+  (let [flow (find-flow! state workflow)]
+    (sync/merge-properties! flow properties)
+    state))
+
 (defn merge-commands!
-  [{:keys [flows executor] :as state} workflow merging]
+  "Merge the new commands `merging` into the named workflow."
+  [{:keys [executor] :as state} workflow merging]
   (let [flow (find-flow! state workflow)]
     (sync/merge-commands! flow executor merging)
     state))
 
 (defn merge-steps!
+  "Merge the new steps into the named workflow."
   [{:keys [executor] :as state} workflow steps]
   (let [flow (find-flow! state workflow)]
     (sync/merge-steps! flow executor steps)
     state))
 
-(defn load-steps!
-  [state workflow path]
-  (let [steps (config/parse-yaml path)]
-    (merge-steps! state workflow steps)))
+;(defn load-steps!
+;  [state workflow path]
+;  (let [steps (config/parse-yaml path)]
+;    (merge-steps! state workflow steps)))
 
 (defn run-flow!
-  [{:keys [executor flows] :as state} workflow]
+  [{:keys [executor] :as state} workflow]
   (let [flow (find-flow! state workflow)]
     (sync/run-flow! flow executor)
     state))
@@ -154,80 +175,123 @@
     (println "STATUS" (:tasks status))
     status))
 
+(defn workflows-info
+  "Return a map of workflow names to their summary info."
+  [{:keys [flows] :as state}]
+  (into {}
+        (map (fn [[workflow flow]] [workflow (sync/summarize-flow flow)])
+             @flows)))
+
 (defn command-handler
+  "Merge the given commands (transformed to a keyword -> value map `index`) into
+  the named workflow."
   [state]
   (fn [request]
     (let [{:keys [workflow commands] :as body} (read-json (:body request))
           workflow (keyword workflow)
           index (command/index-key :name commands)]
-      (log/info! "commands request" body)
+      (log/info! "merge commands request" body)
       (merge-commands! state workflow index)
-      (response
+      (dump-response
        {:commands
         (deref
          (:commands
           (find-flow! state workflow)))}))))
 
 (defn merge-handler
+  "Merge the given steps into the named workflow."
   [state]
   (fn [request]
     (let [{:keys [workflow steps] :as body} (read-json (:body request))
           workflow (keyword workflow)]
       (log/info! "merge steps request" body)
       (merge-steps! state workflow steps)
-      (response
+      (json-response
        {:steps {workflow (map :name steps)}}))))
 
+(defn upload-handler
+  "Upload a new workflow in one request: properties, commands, and steps."
+  [{:keys [flows] :as state}]
+  (fn [request]
+    (let [{:keys [workflow properties commands steps] :as body}
+          (read-json (:body request))
+          workflow (keyword workflow)
+          index (command/index-key :name commands)]
+      (log/info! "upload workflow request" body)
+      (when (get @flows workflow)
+        (throw (IllegalArgumentException.
+                 (str "workflow already exists: " (name workflow)))))
+
+      (merge-properties! state workflow properties)
+      (merge-commands! state workflow index)
+      (merge-steps! state workflow steps)
+      (json-response
+       {:workflow {workflow (map :name steps)}}))))
+
 (defn run-handler
+  "Trigger the named workflow if it's not already running."
   [state]
   (fn [request]
     (let [{:keys [workflow] :as body} (read-json (:body request))
           workflow (keyword workflow)]
       (log/info! "run request" body)
       (run-flow! state workflow)
-      (response
+      (json-response
        {:run workflow}))))
 
 (defn halt-handler
+  "Immediately stop the named workflow and cancel its running tasks."
   [state]
   (fn [request]
     (let [{:keys [workflow] :as body} (read-json (:body request))
           workflow (keyword workflow)]
       (log/info! "halt request" body)
       (halt-flow! state workflow)
-      (response
+      (json-response
        {:halt workflow}))))
 
 (defn status-handler
+  "Return information about the named workflow."
   [state]
   (fn [request]
     (let [{:keys [workflow] :as body} (read-json (:body request))
           workflow (keyword workflow)]
       (log/info! "status request" body)
-      (response
+      (dump-response
        {:workflow workflow
         :status
         (flow-status! state workflow)}))))
 
 (defn expire-handler
+  "Expire the named steps and/or data files (by storage keys) from the named
+  workflow."
   [state]
   (fn [request]
     (let [{:keys [workflow expire] :as body} (read-json (:body request))
           workflow (keyword workflow)]
       (log/info! "expire request" body)
-      (response
+      (dump-response
        {:expire
         (expire-keys! state workflow expire)}))))
+
+(defn workflows-handler
+  "List the current workflows in a map with summary info about each one."
+  [state]
+  (fn [request]
+    (log/info! "list workflows request")
+    (json-response {:workflows (workflows-info state)})))
 
 (defn gaia-routes
   [state]
   [["/" :index (index-handler state)]
    ["/command" :command (command-handler state)]
    ["/merge" :merge (merge-handler state)]
+   ["/upload" :upload (upload-handler state)]
    ["/run" :run (run-handler state)]
    ["/halt" :halt (halt-handler state)]
    ["/status" :status (status-handler state)]
-   ["/expire" :expire (expire-handler state)]])
+   ["/expire" :expire (expire-handler state)]
+   ["/workflows" :workflows (workflows-handler state)]])
 
 (def parse-args
   [["-c" "--config CONFIG" "path to config file"]
@@ -240,7 +304,7 @@
       (handler request)
       (catch Exception e
         (log/exception! e "bad request" request)
-        (response
+        (json-response
          {:error "bad request"
           :request request})))))
 
@@ -260,12 +324,12 @@
     (http/start-server app {:port 24442})
     state))
 
-(defn load-yaml
-  [key config-path step-path]
-  (let [config (config/read-path config-path)
-        state (boot config)
-        state (load-steps! state key step-path)]
-    (run-flow! state key)))
+;(defn load-yaml
+;  [key config-path step-path]
+;  (let [config (config/read-path config-path)
+;        state (boot config)
+;        state (load-steps! state key step-path)]
+;    (run-flow! state key)))
 
 (defn -main
   [& args]

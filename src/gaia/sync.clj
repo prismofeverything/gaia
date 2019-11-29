@@ -24,11 +24,13 @@
     (log/info! message if-seq)))
 
 (defn generate-sync
+  "Construct a new workflow."
   [workflow kafka store]
   (let [flow (flow/generate-flow [])]
     {:workflow workflow
      :flow (atom flow)
      :commands (atom {})
+     :properties (atom {})
      :store store
      :events (:producer kafka)
      :status
@@ -36,6 +38,16 @@
       {:state :initialized
        :data {}
        :tasks {}})}))
+
+(defn summarize-flow
+  "Return summary info on a workflow for the 'workflows' endpoint.
+  TODO(jerry): Counts of waiting/ready/running/completed tasks."
+  [flow]
+  (let [{:keys [state tasks]} @(:status flow)]
+    {:name (name (:workflow flow))
+     :owner (:owner (:properties flow))
+     :state state
+     :task-count (count tasks)}))
 
 (def running-states
   #{:running :error :exception})
@@ -51,8 +63,8 @@
 
 (defn send-tasks!
   [executor workflow commands prior tasks]
-  (log-debug-if! "PRIOR" prior)
-  (log-debug-if! "TASKS" tasks)
+  (log-debug-if! "prior" prior)
+  (log-debug-if! "tasks" tasks)
   (let [running (find-running prior)
         relevant (remove (comp (partial get running) first) tasks)
         submit! (partial executor/submit! executor commands)
@@ -64,8 +76,8 @@
                        (submit!
                         (assoc task :workflow workflow))])
                     relevant))]
-    (log-debug-if! "RUNNING" (mapv first running))
-    (log-debug-if! "TRIGGERED" (mapv first triggered))
+    (log-debug-if! "running" (mapv first running))
+    (log-debug-if! "triggered" (mapv first triggered))
     (merge triggered prior)))
 
 (defn compute-outputs
@@ -101,15 +113,15 @@
   [{:keys [workflow store] :as state} flow executor commands status]
   (let [complete (complete-keys (:data status))
         front (mapv identity (flow/imminent-front flow complete))]
-    (log-debug-if! "COMPLETE KEYS" (sort complete))
-    (log-debug-if! "FRONT" front)
-    (log-debug-if! "WAITING FOR" (flow/missing-data flow complete))
+    (log-debug-if! "complete keys" (sort complete))
+    (log-debug-if! "front" front)
+    (log-debug-if! "waiting for" (flow/missing-data flow complete))
     (if (empty? front)
       (let [missing (missing-data flow (:data status))]
         (log/debug! "empty front - missing" missing)
         (assoc status :state (if (empty? missing) :complete :incomplete)))
       (let [launching (flow/step-map flow front)]
-        (log/debug! "LAUNCHING" launching)
+        (log/debug! "launching" launching)
         (assoc
          status
          :state :running
@@ -141,7 +153,7 @@
    (fn [tasks event]
      (if-let [found (find-task tasks (:id event))]
        (do
-         (log/debug! "FOUND" found)
+         (log/debug! "found" found)
          (-> tasks
              (assoc-in [(first found) :state] state)
              (assoc-in [(first found) :event] event)))
@@ -174,12 +186,12 @@
           :workflow workflow}
          "WORKFLOW STALLED")
 
-        (log/debug! "WORKFLOW CONTINUES" (name workflow))))))
+        (log/debug! "workflow continues" (name workflow))))))
 
 (defn executor-events!
   [{:keys [workflow status flow] :as state}
    executor topic event]
-  (log/debug! "WORKER EVENT" (:event event) "for" (name workflow) event)
+  (log/debug! "worker event" (:event event) "for" (name workflow) event)
   (condp = (:event event)
 
     "step-start"
@@ -212,7 +224,7 @@
     "container-exit"
     ()
 
-    (log/warn! "UNKNOWN WORKER EVENT" (:event event))))
+    (log/warn! "unknown worker event" (:event event))))
 
 (defn initial-key
   [key]
@@ -234,7 +246,7 @@
   (let [found (select-keys (:tasks @status) canceling)]
     (doseq [[key task] found]
       (when (= (:state task) :running)
-        (log-info-if! "CANCELING" key)
+        (log-info-if! "cancelling" key)
         (executor/cancel! executor (:id task))))
     (swap!
      status
@@ -246,13 +258,13 @@
 (defn find-existing
   [store flow status]
   (let [data (flow/data-nodes flow)]
-    ; (log/debug! "DATA" data)  ; "clojure.lang.LazySeq@a96b6ad4"
+    ; (log/debug! "data" data)  ; "clojure.lang.LazySeq@a96b6ad4"
     (if (empty? data)
       status
       (let [[complete missing] (store/partition-data store data)
             existing (into {} (map initial-key complete))]
-        (log/debug! "EXISTING" existing)
-        (log/debug! "ABSENT" (set/difference (set data) (set (keys existing))))
+        (log/debug! "existing" existing)
+        (log/debug! "absent" (set/difference (set data) (set (keys existing))))
         (assoc status :data existing)))))
 
 (defn run-flow!
@@ -275,16 +287,16 @@
         {:keys [data step] :as down} (flow/find-descendants now expiring)
         tasks (:tasks @status)
         targets (target-tasks tasks step)]
-    (log-debug-if! "DESCENDANTS" down)
+    (log-debug-if! "descendants" down)
     (cancel-tasks! status executor step)
-    (log-debug-if! "TASKS" tasks)
+    (log-debug-if! "tasks" tasks)
     (swap!
      status
      (comp
       (partial activate-front! state now executor @commands)
       (partial expunge-keys data)
       (partial find-existing store now)))
-    (log-debug-if! "EXPIRED" down)
+    (log-debug-if! "expired" down)
     down))
 
 (defn halt-flow!
@@ -303,15 +315,24 @@
       :workflow workflow}
      "WORKFLOW HALTED")))
 
+(defn merge-properties!
+  "Merge the given properties into the workflow, computing some defaults."
+  [{:keys [properties workflow] :as state} new-properties]
+  (let [default-owner (first (string/split workflow #"_" 2))
+        default-properties {:owner default-owner}
+        new-properties (merge default-properties new-properties)]
+    (log-debug-if! "merging properties" (keys new-properties))
+    (swap! properties merge new-properties)))
+
 (defn merge-steps!
   [{:keys [flow commands status store] :as state} executor steps]
-  (log/debug! "TRANSFORMING" (count steps) "STEPS")
+  (log/debug! "transforming" (count steps) "steps")
   (let [transform (command/transform-steps @commands steps)]
-    (log/debug! "CANCELING EXISTING TASKS")
+    (log/debug! "cancelling replaced tasks")
     (cancel-tasks! status executor (keys transform))
-    (log/debug! "MERGING" (count transform) "STEPS")
+    (log/debug! "merging" (count transform) "steps")
     (swap! flow #(flow/merge-steps % (vals transform)))
-    (log/debug! "LOOKING FOR EXISTING DATA")
+    (log/debug! "looking for existing data")
     (let [now @flow]
       (swap!
        status
@@ -320,16 +341,17 @@
         (partial find-existing store now))))))
 
 (defn expire-commands!
-  [{:keys [flow commands] :as state} executor expiring]
+  [{:keys [flow] :as state} executor expiring]
   (let [steps (template/map-cat (partial flow/command-steps @flow) expiring)]
     (log/debug! "expiring steps" steps "from commands" (into [] expiring))
     (expire-keys! state executor steps)))
 
 (defn merge-commands!
-  [{:keys [flow commands status store] :as state} executor merging]
-  (log-debug-if! "COMMANDS" (keys merging))
-  (swap! commands merge merging)
-  (try
-    (expire-commands! state executor (keys merging))
-    (catch Exception e
-      (log/exception! e "merge-commands"))))
+  [{:keys [commands] :as state} executor merging]
+  (let [new-keys (keys merging)]
+    (log-debug-if! "merging commands" new-keys)
+    (swap! commands merge merging)
+    (try
+      (expire-commands! state executor new-keys)
+      (catch Exception e
+        (log/exception! e "merge-commands")))))

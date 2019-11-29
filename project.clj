@@ -1,5 +1,5 @@
-(defproject gaia "0.0.15"
-  :description "regenerating dependency network"
+(defproject gaia "0.0.16"
+  :description "workflow server"
   :url "http://github.com/prismofeverything/gaia"
   :license {:name "MIT"
             :url "https://opensource.org/licenses/MIT"}
