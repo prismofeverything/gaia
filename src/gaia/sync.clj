@@ -318,7 +318,7 @@
 (defn merge-properties!
   "Merge the given properties into the workflow, computing some defaults."
   [{:keys [properties workflow] :as state} new-properties]
-  (let [default-owner (first (string/split workflow #"_" 2))
+  (let [default-owner (first (string/split (name workflow) #"_" 2))
         default-properties {:owner default-owner}
         new-properties (merge default-properties new-properties)]
     (log-debug-if! "merging properties" (keys new-properties))

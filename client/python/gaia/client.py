@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-import sys
 import json
 import yaml
 import pprint
@@ -60,6 +59,7 @@ class Gaia(object):
         self.host = config.get('gaia_host', 'localhost:24442')
 
     def _post(self, endpoint, data):
+        # type: (str, dict) -> dict
         url = self.protocol + self.host + '/' + endpoint
         data=json.dumps(data)
         return requests.post(url, data=data).json()
@@ -178,15 +178,17 @@ class Gaia(object):
             print(' '.join(task['command']))
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def main():
+    parser = argparse.ArgumentParser(
+        description='Command line testing the Gaia client API.')
     pp = pprint.PrettyPrinter(indent=4)
     parser.add_argument(
         'command',
-        help='gaia command to perform')
+        choices=['status', 'upload', 'workflows', 'expire', 'launch'],
+        help='gaia endpoint to invoke')
     parser.add_argument(
         'workflow',
-        help='name of workflow to operate on')
+        help='name of the workflow to operate on')
     parser.add_argument(
         '--host',
         default='localhost:24442',
@@ -199,6 +201,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--extension',
         type=str,
+        choices=['json', 'yaml'],
         default='json',
         help='extension for input files')
     parser.add_argument(
@@ -212,36 +215,58 @@ if __name__ == '__main__':
         'gaia_host': args.host})
 
     if args.command == 'status':
-        status = flow.status(args.workflow)
-        output = status
+        status = flow.status(args.workflow)['status']
         output = {
-            'steps': status['status']['tasks'],
-            'state': status['status']['state'],
-            'waiting': status['status']['waiting']}
+            'steps': status['tasks'],
+            'state': status['state'],
+            'waiting': status['waiting']}
+        print('Status highlights:')
         pp.pprint(output)
 
-    elif args.command == 'merge':
+        commands = flow.command(args.workflow)
+        print('Commands:')
+        pp.pprint(commands)
+
+        steps = flow.merge(args.workflow)
+        print('Steps:')
+        pp.pprint(steps)
+
+    elif args.command == 'upload':
         if not args.path:
-            print('No --path specified')
+            parser.error('No --path specified')
         if args.extension == 'json':
-            commands = json.load(open('{}.commands.json'.format(args.path)))
-            steps = json.load(open('{}.steps.json'.format(args.path)))
-        elif args.extension == 'yaml':
-            commands = load_yaml('{}.commands.yaml'.format(args.path))
-            steps = load_yaml('{}.steps.yaml'.format(args.path))
+            commands = json.load(open('{}commands.json'.format(args.path)))
+            steps = json.load(open('{}steps.json'.format(args.path)))
+        else:
+            commands = load_yaml('{}commands.yaml'.format(args.path))
+            steps = load_yaml('{}steps.yaml'.format(args.path))
 
         print(commands)
         print(steps)
 
-        flow.command(args.workflow, commands)
-        flow.merge(args.workflow, steps)
+        properties = {
+            'owner': os.environ['USER'],
+            }
+        flow.upload(
+            workflow=args.workflow,
+            properties=properties,
+            commands=commands,
+            steps=steps)
+
+    elif args.command == 'workflows':
+        workflows = flow.workflows()
+        pp.pprint(workflows)
 
     elif args.command == 'expire':
         if not args.path:
-            print('No --path specified')
+            parser.error('No --path specified')
         keys = args.path.split(',')
         flow.expire(args.workflow, keys)
 
     elif args.command == 'launch':
         workers = ['{}-{}'.format(args.workflow, i) for i in range(args.workers)]
         flow.launch(workers)
+
+
+if __name__ == '__main__':
+    main()
