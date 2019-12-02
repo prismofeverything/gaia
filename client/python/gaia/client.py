@@ -54,7 +54,10 @@ def launch_sisyphus(key):
 
 
 class Gaia(object):
-    def __init__(self, config):
+    def __init__(self, config=None):
+        # type: (Optional[dict]) -> None
+        if not config:
+            config = {}
         self.protocol = "http://"
         self.host = config.get('gaia_host', 'localhost:24442')
 
@@ -118,12 +121,13 @@ class Gaia(object):
         return self._post('halt', {
             'workflow': workflow})
 
-    def status(self, workflow):
-        # type: (str) -> dict
+    def status(self, workflow, debug=False):
+        # type: (str, Optional[bool]) -> dict
         """Return all the status info for the named workflow."""
         assert isinstance(workflow, str)
         return self._post('status', {
-            'workflow': workflow})
+            'workflow': workflow,
+            'debug': debug})
 
     def expire(self, workflow, keys):
         # type: (str, List[str]) -> dict
@@ -197,7 +201,7 @@ def main():
         '--path',
         type=str,
         default='',
-        help='Path to input files, with file prefix')
+        help='Path to input files (with file prefix) or file/step keys to expire')
     parser.add_argument(
         '--extension',
         type=str,
@@ -211,24 +215,19 @@ def main():
         help='number of workers to launch')
     args = parser.parse_args()
 
-    flow = Gaia({
-        'gaia_host': args.host})
+    flow = Gaia({'gaia_host': args.host})
 
     if args.command == 'status':
         status = flow.status(args.workflow)['status']
-        output = {
-            'steps': status['tasks'],
-            'state': status['state'],
-            'waiting': status['waiting']}
-        print('Status highlights:')
-        pp.pprint(output)
+        print('Status:')
+        pp.pprint(status)
 
         commands = flow.command(args.workflow)
-        print('Commands:')
+        print('\nCommands:')
         pp.pprint(commands)
 
         steps = flow.merge(args.workflow)
-        print('Steps:')
+        print('\nSteps:')
         pp.pprint(steps)
 
     elif args.command == 'upload':
@@ -261,7 +260,8 @@ def main():
         if not args.path:
             parser.error('No --path specified')
         keys = args.path.split(',')
-        flow.expire(args.workflow, keys)
+        response = flow.expire(args.workflow, keys)
+        pp.pprint(response)
 
     elif args.command == 'launch':
         workers = ['{}-{}'.format(args.workflow, i) for i in range(args.workers)]

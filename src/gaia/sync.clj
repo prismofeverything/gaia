@@ -41,13 +41,12 @@
 
 (defn summarize-flow
   "Return summary info on a workflow for the 'workflows' endpoint.
-  TODO(jerry): Counts of waiting/ready/running/completed tasks."
+  TODO(jerry): Include counts of waiting/ready/running/completed steps."
   [flow]
-  (let [{:keys [state tasks]} @(:status flow)]
+  (let [{:keys [state]} @(:status flow)]
     {:name (name (:workflow flow))
-     :owner (:owner (:properties flow))
-     :state state
-     :task-count (count tasks)}))
+     :owner (:owner @(:properties flow))
+     :state state}))
 
 (def running-states
   #{:running :error :exception})
@@ -343,7 +342,8 @@
 (defn expire-commands!
   [{:keys [flow] :as state} executor expiring]
   (let [steps (template/map-cat (partial flow/command-steps @flow) expiring)]
-    (log/debug! "expiring steps" steps "from commands" (into [] expiring))
+    (when (seq steps)
+      (log/debug! "expiring steps" steps "from commands" (into [] expiring)))
     (expire-keys! state executor steps)))
 
 (defn merge-commands!

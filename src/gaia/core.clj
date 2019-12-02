@@ -42,19 +42,17 @@
    :headers {"content-type" "application/json"}
    :body (json/generate-string body)})
 
-(defn dump-response
-  "Dump in-memory data structures into a JSON HTTP response, replacing each atom
-  with its value. This is OK for debugging but doesn't promise an API that
-  client code can depend on."
-  ; TODO(jerry): Switch to json-response except status-handler.
-  [body]
-  (let [deatomized (walk/postwalk
-                    (fn [node]
-                      (if (atom? node)
-                        @node
-                        node))
-                    body)]
-    (json-response deatomized)))
+(defn serializable
+  "Make internal data JSON-serializable by expanding each atom's value. This is
+  useful for debugging but doesn't promise API results that client code can
+  depend on."
+  [data]
+  (walk/postwalk
+   (fn [node]
+     (if (atom? node)
+       @node
+       node))
+   data))
 
 (defn index-handler
   [state]
@@ -157,22 +155,28 @@
 
 (defn expire-keys!
   [{:keys [executor] :as state} workflow expire]
-  (log/info! "expiring keys" workflow expire)
+  (when (seq expire)
+    (log/info! "expiring storage path keys" expire "of" workflow))
   (let [flow (find-flow! state workflow)]
-    (sync/expire-keys! flow executor expire)))
+    (sync/expire-keys! flow executor expire)
+    state))
 
 (defn flow-status!
-  [state workflow]
+  [state workflow debug]
   (let [flow (find-flow! state workflow)
         {:keys [state data tasks]} @(:status flow)
         complete (sync/complete-keys data)
         status {:state state
-                :flow @(:flow flow)
-                :tasks tasks
                 :commands @(:commands flow)
-                :waiting (flow/missing-data @(:flow flow) complete)
-                :data data}]
-    (println "STATUS" (:tasks status))
+                ; TODO(jerry): Add :steps.
+                :waiting (flow/missing-data @(:flow flow) complete)}
+        status (if debug ; include internal guts
+                 (merge status
+                        (serializable
+                         {:flow @(:flow flow)
+                          :tasks tasks
+                          :data data}))
+                 status)]
     status))
 
 (defn workflows-info
@@ -192,7 +196,7 @@
           index (command/index-key :name commands)]
       (log/info! "merge commands request" body)
       (merge-commands! state workflow index)
-      (dump-response
+      (json-response
        {:commands
         (deref
          (:commands
@@ -206,8 +210,9 @@
           workflow (keyword workflow)]
       (log/info! "merge steps request" body)
       (merge-steps! state workflow steps)
+      ; TODO(jerry): Return ALL the steps or at least all their names.
       (json-response
-       {:steps {workflow (map :name steps)}}))))
+       {:steps (map :name steps)}))))
 
 (defn upload-handler
   "Upload a new workflow in one request: properties, commands, and steps."
@@ -254,13 +259,13 @@
   "Return information about the named workflow."
   [state]
   (fn [request]
-    (let [{:keys [workflow] :as body} (read-json (:body request))
+    (let [{:keys [workflow debug] :as body} (read-json (:body request))
           workflow (keyword workflow)]
       (log/info! "status request" body)
-      (dump-response
+      (json-response
        {:workflow workflow
         :status
-        (flow-status! state workflow)}))))
+        (flow-status! state workflow debug)}))))
 
 (defn expire-handler
   "Expire the named steps and/or data files (by storage keys) from the named
@@ -270,9 +275,9 @@
     (let [{:keys [workflow expire] :as body} (read-json (:body request))
           workflow (keyword workflow)]
       (log/info! "expire request" body)
-      (dump-response
-       {:expire
-        (expire-keys! state workflow expire)}))))
+      (expire-keys! state workflow expire)
+      (json-response
+       {:expire expire}))))
 
 (defn workflows-handler
   "List the current workflows in a map with summary info about each one."
