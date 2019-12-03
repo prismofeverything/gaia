@@ -47,7 +47,7 @@
   useful for debugging but doesn't promise API results that client code can
   depend on."
   [data]
-  (walk/postwalk
+  (walk/prewalk
    (fn [node]
      (if (atom? node)
        @node
