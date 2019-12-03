@@ -15,6 +15,7 @@
    [sisyphus.rabbit :as rabbit]
    [gaia.config :as config]
    [gaia.store :as store]
+   [gaia.util :as util]
    [gaia.executor :as executor]
    [gaia.command :as command]
    [gaia.flow :as flow]
@@ -182,9 +183,7 @@
 (defn workflows-info
   "Return a map of workflow names to their summary info."
   [{:keys [flows] :as state}]
-  (into {}
-        (map (fn [[workflow flow]] [workflow (sync/summarize-flow flow)])
-             @flows)))
+  (util/map-vals sync/summarize-flow @flows))
 
 (defn command-handler
   "Merge the given commands (transformed to a keyword -> value map `index`) into
@@ -328,13 +327,6 @@
     (println config)
     (http/start-server app {:port 24442})
     state))
-
-;(defn load-yaml
-;  [key config-path step-path]
-;  (let [config (config/read-path config-path)
-;        state (boot config)
-;        state (load-steps! state key step-path)]
-;    (run-flow! state key)))
 
 (defn -main
   [& args]
