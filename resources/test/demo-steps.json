@@ -1,0 +1,24 @@
+[
+    {
+        "command": "lines",
+        "inputs": {},
+        "name": "lines",
+        "outputs": {
+            "0": "sisyphus-jerry:DemoWorkflow/20191202.115929/logs/lines.log",
+            "1": "sisyphus-jerry:DemoWorkflow/20191202.115929/lines.txt"
+        },
+        "timeout": 10
+    },
+    {
+        "command": "count",
+        "inputs": {
+            "0": "sisyphus-jerry:DemoWorkflow/20191202.115929/lines.txt"
+        },
+        "name": "count",
+        "outputs": {
+            "0": "sisyphus-jerry:DemoWorkflow/20191202.115929/logs/count.log",
+            "1": "sisyphus-jerry:DemoWorkflow/20191202.115929/count.txt"
+        },
+        "timeout": 10
+    }
+]
