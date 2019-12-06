@@ -23,6 +23,18 @@
   (when (seq if-seq)
     (log/info! message if-seq)))
 
+(defn- guess-owner
+  "Guess a default :owner name from a workflow name like
+  owner_type_timestamp or owner_type_timestamp__description."
+  [workflow]
+  (first (string/split (name workflow) #"_" 2)))
+
+(defn- guess-properties
+  "Guess default properties from a workflow name."
+  ; Also extract :description from owner_type_timestamp__description?
+  [workflow]
+  {:owner (guess-owner workflow)})
+
 (defn generate-sync
   "Construct a new workflow."
   [workflow kafka store]
@@ -30,7 +42,7 @@
     {:workflow workflow
      :flow (atom flow)
      :commands (atom {})
-     :properties (atom {})
+     :properties (atom (guess-properties workflow))
      :store store
      :events (:producer kafka)
      :status
@@ -43,10 +55,10 @@
   "Return summary info on a workflow for the 'workflows' endpoint.
   TODO(jerry): Include counts of waiting/ready/running/completed steps."
   [flow]
-  (let [{:keys [state]} @(:status flow)]
+  (let [{:keys [state]} @(:status flow)
+        properties @(:properties flow)]
     {:name (name (:workflow flow))
-     :owner (:owner @(:properties flow))
-     :state state}))
+     :properties properties}))
 
 (def running-states
   #{:running :error :exception})
@@ -317,9 +329,8 @@
 (defn merge-properties!
   "Merge the given properties into the workflow, computing some defaults."
   [{:keys [properties workflow] :as state} new-properties]
-  (let [default-owner (first (string/split (name workflow) #"_" 2))
-        default-properties {:owner default-owner}
-        new-properties (merge default-properties new-properties)]
+  (let [defaults (guess-properties workflow)
+        new-properties (merge defaults new-properties)]
     (log-debug-if! "merging properties" (keys new-properties))
     (swap! properties merge new-properties)))
 
