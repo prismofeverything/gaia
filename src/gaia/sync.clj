@@ -58,6 +58,7 @@
   (let [{:keys [state]} @(:status flow)
         properties @(:properties flow)]
     {:name (name (:workflow flow))
+     :state state
      :properties properties}))
 
 (def running-states

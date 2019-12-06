@@ -69,10 +69,15 @@ class Gaia(object):
         url = self.protocol + self.host + '/' + endpoint
         reply = requests.post(url, json=data, timeout=5)
 
-        result = reply.json()
+        try:
+            result = reply.json()
+        except ValueError as e:
+            result = reply.text
+
         if reply.status_code != requests.codes.ok and result:
             raise requests.HTTPError(result)
         reply.raise_for_status()
+
         return result
 
     def command(self, workflow, commands=None):
