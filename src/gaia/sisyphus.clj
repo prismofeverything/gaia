@@ -2,6 +2,7 @@
   (:require
    [clojure.walk :as walk]
    [protograph.template :as template]
+   [sisyphus.log :as log]
    [sisyphus.cloud :as cloud]
    [sisyphus.kafka :as kafka]
    [sisyphus.rabbit :as rabbit]

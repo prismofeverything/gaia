@@ -2,6 +2,7 @@
   (:require
    [clojure.set :as set]
    [clojure.string :as string]
+   [sisyphus.base :as base]
    [sisyphus.cloud :as cloud]
    [gaia.store :as store]))
 
@@ -9,7 +10,7 @@
   store/Store
   (present?
     [store key]
-    (let [[bucket path] (cloud/split-key key)]
+    (let [[bucket path] (base/split-key key)]
       (cloud/exists? storage bucket (store/join-path [container path]))))
   (protocol [store] "")
   (partition-data
@@ -17,7 +18,7 @@
     (cloud/partition-keys storage data))
   (existing-keys
     [store root]
-    (let [[bucket path] (cloud/split-key root)]
+    (let [[bucket path] (base/split-key root)]
       (cloud/list-directory storage bucket path))))
 
 (defn load-cloud-store

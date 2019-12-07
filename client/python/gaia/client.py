@@ -160,10 +160,6 @@ class Gaia(object):
         # type: (List[str]) -> None
         """Launch the named Sisyphus worker nodes."""
         assert isinstance(names, list), 'need a list of worker names'
-        if metadata:
-            metadata = {
-                'rabbit-' + key: value
-                for key, value in metadata.items()}
         args = [
             {'worker': worker, 'metadata': metadata}
             for worker in names]
@@ -298,20 +294,13 @@ def main():
 
     elif args.command == 'launch':
         workers = ['{}-{}'.format(args.workflow, i) for i in range(args.workers)]
-<<<<<<< HEAD
-        metadata = {}
-        if args.exchange:
-            metadata['exchange'] = args.exchange
-        if args.queue:
-            metadata['queue'] = args.queue
-        if args.routing_key:
-            metadata['routing-key'] = args.routing_key
+        metadata = {
+			'workflow': args.workflow}
 
         flow.launch(workers, metadata)
-=======
-        flow.launch(workers)
+
 
 
 if __name__ == '__main__':
     main()
->>>>>>> 16bd596d9b2e5dd39ce025d7f54e46f72d206b82
+
