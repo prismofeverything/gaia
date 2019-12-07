@@ -21,7 +21,7 @@
 
 (defn validate-apply-composite!
   [{:keys [inputs outputs]} step]
-  ;; (log/debug! "VALIDATE" (pp step))
+  ;; (log/debug! "validate" (pp step))
   (let [pin (:inputs step)
         pout (:outputs step)
         pvars (:vars step)]

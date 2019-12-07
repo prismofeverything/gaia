@@ -63,6 +63,9 @@
     (assoc config :commands commands)))
 
 (defn load-store
+  "Use the given config to construct a store/Store generator function, which
+  given the workflow name to use as a container base path will then connect to
+  a service for storing task inputs and outputs, each with a local key."
   [config]
   (condp = (keyword (:type config))
     :file (store/file-store-generator config)

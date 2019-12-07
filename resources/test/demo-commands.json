@@ -1,0 +1,34 @@
+[
+    {
+        "command": [
+            "python",
+            "-u",
+            "-c",
+            "with open('/tmp/lines.txt', 'w') as f:\n  for i in range(100):\n    f.write('This is line {}\\n'.format(i))\n    print('hello {}'.format(i))"
+        ],
+        "image": "python:2.7.16",
+        "inputs": {},
+        "name": "lines",
+        "outputs": {
+            "0": ">>",
+            "1": "/tmp/lines.txt"
+        },
+        "vars": {}
+    },
+    {
+        "command": [
+            "wc",
+            "/tmp/lines.txt"
+        ],
+        "image": "python:2.7.16",
+        "inputs": {
+            "0": "/tmp/lines.txt"
+        },
+        "name": "count",
+        "outputs": {
+            "0": ">>",
+            "1": ">"
+        },
+        "vars": {}
+    }
+]
