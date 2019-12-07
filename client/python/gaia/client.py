@@ -229,18 +229,6 @@ def main():
         type=int,
         default=0,
         help='number of workers to launch')
-    parser.add_argument(
-        '--exchange',
-        default=None,
-        help='exchange for worker to receive messages from')
-    parser.add_argument(
-        '--queue',
-        default=None,
-        help='rabbit queue for new workers to connect to')
-    parser.add_argument(
-        '--routing-key',
-        default=None,
-        help='routing key for messages from exchange to get to queue')
 
     args = parser.parse_args()
 
