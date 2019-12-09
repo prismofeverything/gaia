@@ -37,10 +37,12 @@
    (string/split (slurp path) #"\n")))
 
 (defn json-response
-  [body]
-  {:status 200
-   :headers {"content-type" "application/json"}
-   :body (json/generate-string body)})
+  ([body]
+   (json-response body 200))
+  ([body status-code]
+   {:status status-code
+    :headers {"content-type" "application/json"}
+    :body (json/generate-string body)}))
 
 (defn serializable
   "Make internal data JSON-serializable by expanding each atom's value. This is
@@ -114,6 +116,11 @@
 
 (defn merge-properties!
   "Merge the new properties into the named workflow."
+  ;   :owner - owner name for filtering and sorting workflow lists
+  ;   :description - to organize workflows
+  ;   Requested number of workers?
+  ;   Worker node resource needs?
+  ;   Storage root path?
   [state workflow properties]
   (let [flow (find-flow! state workflow)]
     (sync/merge-properties! flow properties)
@@ -132,11 +139,6 @@
   (let [flow (find-flow! state workflow)]
     (sync/merge-steps! flow executor steps)
     state))
-
-;(defn load-steps!
-;  [state workflow path]
-;  (let [steps (config/parse-yaml path)]
-;    (merge-steps! state workflow steps)))
 
 (defn run-flow!
   [{:keys [executor] :as state} workflow]
@@ -163,10 +165,12 @@
   (let [flow (find-flow! state workflow)
         {:keys [state data tasks]} @(:status flow)
         complete (sync/complete-keys data)
+        ; TODO(jerry): :state is in #{:initialized :running :complete :halted :error}?
+        ;   Add a :stalled state?
+        ; TODO(jerry): Add :steps.
         status {:state state
                 :commands @(:commands flow)
-                ; TODO(jerry): Add :steps.
-                :waiting (flow/missing-data @(:flow flow) complete)}
+                :waiting-inputs (flow/missing-data @(:flow flow) complete)}
         status (if debug ; include internal guts
                  (merge status
                         (serializable
@@ -303,10 +307,11 @@
     (try
       (handler request)
       (catch Exception e
-        (log/exception! e "bad request" request)
-        (json-response
-         {:error "bad request"
-          :request request})))))
+        ; TODO: The request body is just an empty stream now.
+        ;   Adopt ring-json/wrap-json-response and ring-json/wrap-json-params to
+        ;   log the request body?
+        (log/exception! e "Bad Request") ; or 500 Internal Server Error
+        (json-response {:error (str e)} 400))))) ; TODO: just (.getMessage e)?
 
 (defn start
   [options]

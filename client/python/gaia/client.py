@@ -73,10 +73,23 @@ class Gaia(object):
         self.host = config.get('gaia_host', 'localhost:24442')
 
     def _post(self, endpoint, data):
+        """Post to the endpoint with JSON data. Might raise a HTTPError or
+        another subtype of requests.RequestException.
+        """
         # type: (str, dict) -> dict
         url = self.protocol + self.host + '/' + endpoint
-        data=json.dumps(data)
-        return requests.post(url, data=data).json()
+        reply = requests.post(url, json=data, timeout=5)
+
+        try:
+            result = reply.json()
+        except ValueError as e:
+            result = reply.text
+
+        if reply.status_code != requests.codes.ok and result:
+            raise requests.HTTPError(result)
+        reply.raise_for_status()
+
+        return result
 
     def command(self, workflow, commands=None):
         # type: (str, Optional[List[dict]]) -> dict
@@ -236,16 +249,7 @@ def main():
 
     if args.command == 'status':
         status = flow.status(args.workflow)['status']
-        print('Status:')
         pp.pprint(status)
-
-        commands = flow.command(args.workflow)
-        print('\nCommands:')
-        pp.pprint(commands)
-
-        steps = flow.merge(args.workflow)
-        print('\nSteps:')
-        pp.pprint(steps)
 
     elif args.command == 'upload':
         if not args.path:
@@ -257,17 +261,23 @@ def main():
             commands = load_yaml('{}commands.yaml'.format(args.path))
             steps = load_yaml('{}steps.yaml'.format(args.path))
 
-        print(commands)
-        print(steps)
+        print('\nCommands to upload:')
+        pp.pprint(commands)
+
+        print('\nSteps to upload:')
+        pp.pprint(steps)
 
         properties = {
             'owner': os.environ['USER'],
             }
-        flow.upload(
+
+        print('\nResponse:')
+        response = flow.upload(
             workflow=args.workflow,
             properties=properties,
             commands=commands,
             steps=steps)
+        pp.pprint(response)
 
     elif args.command == 'workflows':
         workflows = flow.workflows()
