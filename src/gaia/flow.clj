@@ -100,6 +100,7 @@
    :outgoing (graph/successors flow node)})
 
 (defn missing-data
+  "Return a list of input paths that steps are waiting on."
   [flow data]
   (let [steps (map-prefix "step" (step-nodes flow))
         full (map (partial full-node flow) steps)

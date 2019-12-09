@@ -57,8 +57,10 @@ Once here, you want to be able to send processes and commands to Gaia. First, cl
 ## client
 
 The python client for Gaia lives at `client/python/gaia.py`.
+It sends HTTP requests to the Gaia server.
 
 See its [README](client/python/README.md) for details.
+The README and `gaia.py` document Gaia's HTTP API.
 
 
 ## server
