@@ -169,10 +169,12 @@
   (let [flow (find-flow! state workflow)
         {:keys [state data tasks]} @(:status flow)
         complete (sync/complete-keys data)
+        ; TODO(jerry): :state is in #{:initialized :running :complete :halted :error}?
+        ;   Add a :stalled state?
+        ; TODO(jerry): Add :steps.
         status {:state state
                 :commands @(:commands flow)
-                ; TODO(jerry): Add :steps.
-                :waiting (flow/missing-data @(:flow flow) complete)}
+                :waiting-inputs (flow/missing-data @(:flow flow) complete)}
         status (if debug ; include internal guts
                  (merge status
                         (serializable

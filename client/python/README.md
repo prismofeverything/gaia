@@ -41,8 +41,8 @@ flow.upload('crick_demo_20191130.121500', {'owner': 'crick'}, commands, steps)
 ```
 
 Each workflow needs a unique name. The standard practice is to construct a name in the
-form `owner_program_datetime`. Some code might use that to helpfully sort
-and filter workflows.
+form `owner_program_datetime`, e.g. `crick_DemoWorkflow_20191209.133734`.
+This aids sorting and filtering workflows.
 
 You will also need to launch some sisyphus workers. To do that
 [NOTE: This part is in flux]:
@@ -128,8 +128,8 @@ The `status` method provides information about a workflow, formatted as a
 dictionary with these keys:
 
 * state - a string representing the state of the overall workflow. Possible values are 'initialized', 'running', 'complete', 'halted', and 'error'.
-* commands - a list of the workflow's commands
-* waiting - info on the Steps waiting to run
+* commands - a list of the workflow's Commands
+* waiting-inputs - a list of the data inputs (file and directory paths) that Steps are waiting on
 
 ```
 flow.status('biostream')

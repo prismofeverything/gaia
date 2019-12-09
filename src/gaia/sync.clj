@@ -24,14 +24,12 @@
     (log/info! message if-seq)))
 
 (defn- guess-owner
-  "Guess a default :owner name from a workflow name like
-  owner_type_timestamp or owner_type_timestamp__description."
+  "Guess a default :owner name from a workflow name like owner_type_timestamp."
   [workflow]
   (first (string/split (name workflow) #"_" 2)))
 
 (defn- guess-properties
   "Guess default properties from a workflow name."
-  ; Also extract :description from owner_type_timestamp__description?
   [workflow]
   {:owner (guess-owner workflow)})
 
