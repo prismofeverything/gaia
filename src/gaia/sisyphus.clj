@@ -69,7 +69,7 @@
    compute project zone
    (if (empty? filters)
      {}
-     {:filters filters})))
+     {:filter filters})))
 
 (deftype SisyphusExecutor [sisyphus]
   executor/Executor
