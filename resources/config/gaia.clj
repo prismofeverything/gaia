@@ -8,7 +8,10 @@
 
  :executor
  {:target "sisyphus"
-  :path ""}
+  :path ""
+  :rabbit {}
+  :project "gcloud-project"
+  :zone "us-west1-b"}
 
  :store
  {:type :cloud

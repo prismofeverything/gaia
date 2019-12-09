@@ -3,9 +3,16 @@
 NAME=$1
 FULL_NAME=sisyphus-$NAME
 PROJECT=allen-discovery-center-mcovert
+METADATA=$2
 
-#       --custom-cpu=6 \
-#       --custom-memory=32 \
+FULL_METADATA="base-name=$NAME"
+
+if [ ! -z "$METADATA" ]
+then
+    FULL_METADATA=$FULL_METADATA,$METADATA
+fi
+
+echo $FULL_METADATA
 
 gcloud compute \
        --project=$PROJECT \
@@ -22,4 +29,10 @@ gcloud compute \
        --boot-disk-size=200GB \
        --boot-disk-type=pd-standard \
        --boot-disk-device-name=$FULL_NAME \
-       --description='sisyphus worker'
+       --description='sisyphus worker' \
+       --metadata=$FULL_METADATA
+
+# additional parameters --------------------
+      # --custom-cpu=6 \
+      # --custom-memory=32 \
+

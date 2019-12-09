@@ -46,11 +46,22 @@ def pop_path(path):
 
     return '/'.join(parts[1:])
 
-def launch_sisyphus(key):
+def launch_sisyphus(options):
     command = os.path.join("script", "launch-sisyphus.sh")
     if not os.path.exists(command):
         command = "launch-sisyphus.sh"
-    os.system("{} {}".format(command, key))
+
+    worker = options.get('worker', 'sisyphus')
+    metadata = options.get('metadata', {})
+
+    launch_metadata = ''
+    if metadata:
+        metadata_fields = []
+        for key, value in metadata.items():
+            metadata_fields.append('{}={}'.format(key, value))
+        launch_metadata = ','.join(metadata_fields)
+
+    os.system("{} {} {}".format(command, worker, launch_metadata))
 
 
 class Gaia(object):
@@ -157,12 +168,17 @@ class Gaia(object):
         """List the current workflows, with summary info on each one."""
         return self._post('workflows', {})
 
-    def launch(self, names):
+    def launch(self, names, metadata=None):
+
         # type: (List[str]) -> None
         """Launch the named Sisyphus worker nodes."""
         assert isinstance(names, list), 'need a list of worker names'
+        args = [
+            {'worker': worker, 'metadata': metadata}
+            for worker in names]
+
         pool = multiprocessing.Pool(10)
-        pool.map(launch_sisyphus, names)
+        pool.map(launch_sisyphus, args)
 
     def pull_inputs(self, workflow, task_name, root=None, path_fn=pop_path):
         # type: (str, str, Optional[str], Callable[[str], str]) -> None
@@ -226,6 +242,7 @@ def main():
         type=int,
         default=0,
         help='number of workers to launch')
+
     args = parser.parse_args()
 
     flow = Gaia({'gaia_host': args.host})
@@ -275,8 +292,13 @@ def main():
 
     elif args.command == 'launch':
         workers = ['{}-{}'.format(args.workflow, i) for i in range(args.workers)]
-        flow.launch(workers)
+        metadata = {
+			'workflow': args.workflow}
+
+        flow.launch(workers, metadata)
+
 
 
 if __name__ == '__main__':
     main()
+

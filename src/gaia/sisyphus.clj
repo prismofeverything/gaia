@@ -2,6 +2,8 @@
   (:require
    [clojure.walk :as walk]
    [protograph.template :as template]
+   [sisyphus.log :as log]
+   [sisyphus.cloud :as cloud]
    [sisyphus.kafka :as kafka]
    [sisyphus.rabbit :as rabbit]
    [gaia.executor :as executor]))
@@ -46,8 +48,13 @@
 (defn submit-task!
   [{:keys [rabbit]} commands step]
   (let [command (get commands (keyword (:command step)))
-        task (step->task step command)]
-    (rabbit/publish! rabbit task)
+        task (step->task step command)
+        routing-key (str (name (:workflow task)) "-task")]
+    (log/debug! "rabbit:" (:exchange rabbit) routing-key)
+    (log/debug! "task:" task)
+    (rabbit/publish!
+     (assoc rabbit :routing-key routing-key)
+     task)
     (assoc task :state :running)))
 
 (defn cancel-task!
@@ -57,6 +64,14 @@
    (get-in kafka [:config :control-topic] "gaia-control")
    {:event "terminate"
     :id id}))
+
+(defn find-instances
+  [{:keys [compute project zone]} filters]
+  (cloud/list-instances
+   compute project zone
+   (if (empty? filters)
+     {}
+     {:filter filters})))
 
 (deftype SisyphusExecutor [sisyphus]
   executor/Executor
@@ -68,6 +83,13 @@
     (cancel-task! sisyphus id)))
 
 (defn load-sisyphus-executor
-  "required keys are :rabbit and :kafka"
+  "Required keys are :rabbit and :kafka. Replaces configuration in input map
+  under :rabbit key with rabbitmq connection map from `sisyphus.rabbit`."
   [config]
-  (SisyphusExecutor. config))
+  (let [rabbit (rabbit/connect! (:rabbit config))
+        compute (cloud/create-compute-service)]
+    (SisyphusExecutor.
+     (assoc
+      config
+      :rabbit rabbit
+      :compute compute))))
