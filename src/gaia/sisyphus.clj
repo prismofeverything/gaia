@@ -48,10 +48,12 @@
 (defn submit-task!
   [{:keys [rabbit]} commands step]
   (let [command (get commands (keyword (:command step)))
-        task (step->task step command)]
-    (log/debug! "TASK: " task)
+        task (step->task step command)
+        routing-key (str (name (:workflow task)) "-task")]
+    (log/debug! "rabbit:" (:exchange rabbit) routing-key)
+    (log/debug! "task:" task)
     (rabbit/publish!
-     (assoc rabbit :routing-key (name (:workflow task)))
+     (assoc rabbit :routing-key routing-key)
      task)
     (assoc task :state :running)))
 
@@ -81,8 +83,8 @@
     (cancel-task! sisyphus id)))
 
 (defn load-sisyphus-executor
-  "Required keys are :rabbit and :kafka. Replaces configuration under :rabbit key
-  with rabbitmq connection map from `sisyphus.rabbit`."
+  "Required keys are :rabbit and :kafka. Replaces configuration in input map
+  under :rabbit key with rabbitmq connection map from `sisyphus.rabbit`."
   [config]
   (let [rabbit (rabbit/connect! (:rabbit config))
         compute (cloud/create-compute-service)]
