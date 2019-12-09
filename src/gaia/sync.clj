@@ -59,7 +59,8 @@
         properties @(:properties flow)]
     {:name (name (:workflow flow))
      :state state
-     :properties properties}))
+     :properties properties
+     :step-count (count (flow/step-nodes @(:flow flow)))}))
 
 (def running-states
   #{:running :error :exception})
