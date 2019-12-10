@@ -73,10 +73,10 @@ class Gaia(object):
         self.host = config.get('gaia_host', 'localhost:24442')
 
     def _post(self, endpoint, data):
+        # type: (str, dict) -> dict
         """Post to the endpoint with JSON data. Might raise a HTTPError or
         another subtype of requests.RequestException.
         """
-        # type: (str, dict) -> dict
         url = self.protocol + self.host + '/' + endpoint
         reply = requests.post(url, json=data, timeout=5)
 
