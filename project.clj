@@ -1,4 +1,4 @@
-(defproject gaia "0.0.18"
+(defproject gaia "0.0.19"
   :description "workflow server"
   :url "http://github.com/prismofeverything/gaia"
   :license {:name "MIT"
@@ -13,6 +13,6 @@
                  [ubergraph "0.5.2"]
                  [protograph "0.0.23"]
                  [polaris "0.0.19"]
-                 [sisyphus "0.0.23"]
+                 [sisyphus "0.0.24"]
                  [com.google.guava/guava "28.0-jre"]
                  [org.javaswift/joss "0.9.17"]])

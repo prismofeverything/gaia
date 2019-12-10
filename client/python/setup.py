@@ -8,7 +8,7 @@ with open("README.md", 'r') as readme:
 
 setup(
 	name='gaia',
-	version='0.0.8',
+	version='0.0.9',
 	packages=['gaia'],
 	author='Ryan Spangler',
 	author_email='ryan.spangler@gmail.com',

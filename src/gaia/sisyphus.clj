@@ -49,9 +49,12 @@
   [{:keys [rabbit]} commands step]
   (let [command (get commands (keyword (:command step)))
         task (step->task step command)
-        routing-key (str (name (:workflow task)) "-task")]
+        workflow-name (name (:workflow task))
+        queue-name (str workflow-name "-queue")
+        routing-key (str workflow-name "-task")]
     (log/debug! "rabbit:" (:exchange rabbit) routing-key)
     (log/debug! "task:" task)
+    (rabbit/declare-queue! rabbit queue-name routing-key)
     (rabbit/publish!
      (assoc rabbit :routing-key routing-key)
      task)
