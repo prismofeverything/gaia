@@ -311,7 +311,7 @@
         ;   Adopt ring-json/wrap-json-response and ring-json/wrap-json-params to
         ;   log the request body?
         (log/exception! e "Bad Request") ; or 500 Internal Server Error
-        (json-response {:error (str e)} 400))))) ; TODO: just (.getMessage e)?
+        (json-response {:error (str e)} 400)))))
 
 (defn start
   [options]
