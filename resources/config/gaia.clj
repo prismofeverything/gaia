@@ -3,14 +3,12 @@
   :port "9092"
   :status-topic "sisyphus-status"}
 
- :rabbit
- {:host "localhost"}
-
  :executor
  {:target "sisyphus"
   :path ""
-  :rabbit {}
-  :project "gcloud-project"
+  :rabbit
+  {:host "localhost"}
+  :project "my-gcloud-project"
   :zone "us-west1-b"}
 
  :store
